@@ -831,6 +831,51 @@ TEST(TlvBuild, TraverseDetach)
 	STRCMP_EQUAL( "AA03890102", hexify( root.dump() ).c_str() );
 }
 
+TEST( TlvBuild, LongLengthEncoding )
+{
+    std::vector<uint8_t> data( 0xFF /*size*/, 0xF );
+    std::vector<uint8_t> data2( 0x101 /*size*/, 0xF );
+    Tlv root( 0xFE, data );
+    root.push_back( Tlv( 0xDE, data ) );
+    root.push_back( Tlv( 0xDE, data2 ) );
+    auto tlvData = root.dump();
+
+    // FE 82 02 01   DE 81 FF 0F ... DE 82 01 01 0F ...
+    CHECK_EQUAL( 0xFE, tlvData[0] );
+    CHECK_EQUAL( 0x82, tlvData[1] );
+    CHECK_EQUAL( 0x02, tlvData[2] );
+    CHECK_EQUAL( 0x07, tlvData[3] ); // 0x200 + 3 + 4
+
+    CHECK_EQUAL( 0xDE, tlvData[4] );
+    CHECK_EQUAL( 0x81, tlvData[5] );
+    CHECK_EQUAL( 0xFF, tlvData[6] );
+    CHECK_EQUAL( 0x0F, tlvData[7] );
+
+    CHECK_EQUAL( 0xDE, tlvData[262] );
+    CHECK_EQUAL( 0x82, tlvData[263] );
+    CHECK_EQUAL( 0x01, tlvData[264] );
+    CHECK_EQUAL( 0x01, tlvData[265] );
+    CHECK_EQUAL( 0x0F, tlvData[266] );
+    CHECK_EQUAL( 0x20B, tlvData.size() );
+
+    Tlv parsedData;
+    auto status = parsedData.parse( tlvData.data(), tlvData.size(), nullptr, 2 );
+
+    CHECK_TRUE( status );
+    CHECK_TRUE( parsedData.has_tag() );
+    CHECK_EQUAL( 0xFE, parsedData.tag().value );
+    CHECK_TRUE( parsedData.tag().constructed() );
+    CHECK_EQUAL( 2, parsedData.children().size() );
+    CHECK_TRUE( parsedData.children().front().has_tag() );
+    CHECK_TRUE(  parsedData.children().back().has_tag() );
+    CHECK_EQUAL( 0xDE, parsedData.children().front().tag().value );
+    CHECK_EQUAL( 0xDE, parsedData.children().back().tag().value );
+    CHECK_FALSE( parsedData.children().front().tag().constructed() );
+    CHECK_FALSE( parsedData.children().back().tag().constructed() );
+    CHECK_TRUE( parsedData.children().front().value() == data );
+    CHECK_TRUE( parsedData.children().back().value() == data2 );
+}
+
 /*
  * TlvParse
  */
