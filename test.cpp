@@ -876,6 +876,31 @@ TEST( TlvBuild, LongLengthEncoding )
     CHECK_TRUE( parsedData.children().back().value() == data2 );
 }
 
+TEST(TlvBuild, DeepBranches)
+{
+    /*
+     * F1
+     *    F2
+     *       F3
+     *          D4 01
+     *    F2
+     *       F3
+     *          D4 01
+     */
+    Tlv root( 0xF1 );
+    for( int i = 0; i < 2; i++ )
+    {
+        Tlv f2( 0xF2 );
+        root.push_back( f2 );
+        Tlv f3( 0xF3 );
+        f2.push_back( f3 );
+        Tlv d4( 0xD4, 1 );
+        f3.push_back( d4 );
+    }
+
+    STRCMP_EQUAL( "F10EF205F303D40101F205F303D40101", hexify( root.dump() ).c_str() );
+}
+
 /*
  * TlvParse
  */
