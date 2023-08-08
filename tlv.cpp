@@ -366,7 +366,7 @@ class Tlv::Parser
 
 	std::shared_ptr<Tlv::Data> next( Tlv::Status &s )
 	{
-		std::shared_ptr<Tlv::Data> ret( new Tlv::Data );
+		auto ret = std::make_shared<Tlv::Data>();
 		size_t tag_len = 1;
 		size_t size = 0;
 		size_t size_len = 0;
@@ -507,10 +507,8 @@ public:
  */
 
 Tlv::Tlv() :
-	data_( new Data )
-{
-	data_->tag = 0u;
-}
+	data_( std::make_shared<Data>() )
+{}
 
 Tlv::Tlv( const Tag tag ) :
 	Tlv()
@@ -626,7 +624,7 @@ Tlv::Tlv( const Tag tag, const Tlv &child ) :
 }
 
 Tlv::Tlv( const Tlv &rhs ) :
-	data_( new Data( *rhs.data_ ) )
+	data_( std::make_shared<Data>( *rhs.data_ ) )
 {}
 
 Tlv::Tlv( const Tlv &&rhs ) :
@@ -1289,5 +1287,5 @@ void Tlv::swap( Tlv &rhs )
 
 void Tlv::clear()
 {
-	data_.reset( new Data() );
+	data_ = std::make_shared<Data>();
 }
