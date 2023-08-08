@@ -67,7 +67,6 @@ static uint32_t msb( uint32_t value )
 /*
  * TlvTag
  */
-const uint32_t Tlv::Tag::max_tag = 0x1FFFFF;
 
 Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag )
 {
@@ -77,11 +76,9 @@ Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag )
 	static const unsigned char paytload_bits = 0x7F;
 	static const unsigned char constructed_tag = 0x20;
 	static const unsigned char primitive_tag = 0x00;
-	Tlv::Tag ret;
-	if ( tag > max_tag )
+	Tlv::Tag ret; // invalid tag
+	if( tag <= max_tag_number ) // must fit in 4 bytes
 	{
-		ret.value = 0; // does not fit in 4 bytes
-	} else {
 		if ( tag < 31 )
 		{
 			// Short form
@@ -109,7 +106,7 @@ Tlv::Tag Tlv::Tag::build( UniversalTagType type, bool constructed )
 }
 
 Tlv::Tag::Tag() :
-		value( 0 )
+		value( empty_tag_value )
 {}
 
 Tlv::Tag::Tag( uint32_t value ) :
@@ -150,12 +147,19 @@ Tlv::Tag::operator bool() const
 
 bool Tlv::Tag::empty() const
 {
-	return value == 0;
+	return value == empty_tag_value;
 }
 
 size_t Tlv::Tag::size() const
 {
-	return ( value == 0 ) ? 0 : 4 - __builtin_clz( value ) / 8;
+	if ( value == empty_tag_value )
+	{
+		return 0;
+	}
+	else
+	{
+		return 4 - __builtin_clz( value ) / 8;
+	}
 }
 
 Tlv::Tag::Class Tlv::Tag::tag_class() const
@@ -193,7 +197,6 @@ struct Tlv::Data
 	std::list<std::shared_ptr<Data>> children;
 
 	Data() :
-		tag( 0u ),
 		parent( nullptr )
 	{}
 	Data( const Data &rhs ) :

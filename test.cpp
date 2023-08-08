@@ -178,13 +178,13 @@ TEST(TlvTag, TagBuild)
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 24769 );
 	CHECK_EQUAL( 0x5F81C141, tag.value );
 	CHECK_EQUAL( 4, tag.size() );
-	tag = Tlv::Tag::build( Tlv::Tag::Class::Private, true, Tlv::Tag::max_tag );
+	tag = Tlv::Tag::build( Tlv::Tag::Class::Private, true, Tlv::Tag::max_tag_number );
 	CHECK_EQUAL( 0xFFFFFF7F, tag.value );
 	CHECK_EQUAL( 4, tag.size() );
 
 	// Overflow
-	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, Tlv::Tag::max_tag + 1 );
-	CHECK_EQUAL( 0, tag.value );
+	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, Tlv::Tag::max_tag_number + 1 );
+	CHECK_EQUAL( Tlv::Tag::empty_tag_value, tag.value );
 	CHECK_EQUAL( 0, tag.size() );
 	CHECK( tag.empty() );
 }
