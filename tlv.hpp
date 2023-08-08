@@ -93,7 +93,11 @@ public:
 			OidIri,
 			RelativeOidIri
 		};
-		static const uint32_t max_tag;
+		// max tag number fitting into 4 byte constructed tag
+		static const uint32_t max_tag_number = 0x1FFFFF;
+		// empty tag value (0xFF is invalid because it indicates another byte follows)
+		static const uint32_t empty_tag_value = 0;
+
 		uint32_t value;
 
 		static Tlv::Tag build( Class cls, bool constructed, uint32_t tag );
