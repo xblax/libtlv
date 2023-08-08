@@ -858,7 +858,7 @@ std::vector<unsigned char> Tlv::dump() const
 		} else {
 			// Definite long form
 			int len_bytes = 4 - __builtin_clz( len ) / 8;
-			out.push_back( (unsigned char)( 0x80 & len_bytes ) );
+			out.push_back( (unsigned char)( 0x80 | len_bytes ) );
 			for( int i = len_bytes - 1; i >= 0; i-- )
 			{
 				out.push_back( ( len >> ( i * 8 ) ) & 0xFF );
