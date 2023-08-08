@@ -894,6 +894,32 @@ TEST(TlvBuild, DeepBranches)
     STRCMP_EQUAL( "F10EF205F303D40101F205F303D40101", hexify( root.dump() ).c_str() );
 }
 
+TEST(TlvBuild, ParentDestroyed)
+{
+	Tlv child( 0xD1, 1 );
+	{
+		Tlv root( 0xF1 );
+		root.push_back( child );
+		CHECK_TRUE( child.has_parent() );
+	}
+	// Root is destroyed when out of scope, since not referenced by any other node
+	CHECK_FALSE( child.has_parent() );
+}
+
+TEST(TlvBuild, ChildNotDestroyed)
+{
+	Tlv root( 0xF1 );
+	{
+		Tlv child( 0xD1, 1 );
+		root.push_back( child );
+		CHECK_TRUE( child.has_parent() );
+	}
+	// Child is not destroyed when out of scope, since still referenced by root
+	CHECK_TRUE( root.has_children() );
+	CHECK_EQUAL( 0xD1, root.front().tag().value );
+	CHECK_TRUE( root.front().has_parent() );
+}
+
 /*
  * TlvParse
  */
