@@ -842,28 +842,31 @@ std::vector<unsigned char> Tlv::dump() const
 		}
 	}
 	static auto build_tag = []( std::vector<unsigned char> &out, Data &element, std::vector<unsigned char> *data = nullptr ) {
-		// Build tag
-		for( int i = ( sizeof( element.tag.value ) - __builtin_clz( element.tag.value ) / 8 ) - 1; i >= 0; i-- )
+		if( !element.tag.empty() )
 		{
-			out.push_back( ( element.tag.value >> ( i * 8 ) ) & 0xFF );
-		}
-		// Build length
-		size_t len = element.value.size();
-		if ( data )
-		{
-			len = data->size();
-		}
-		if ( len <= 127 )
-		{
-			// Definite short form
-			out.push_back( len & 0x7F );
-		} else {
-			// Definite long form
-			int len_bytes = 4 - __builtin_clz( len ) / 8;
-			out.push_back( (unsigned char)( 0x80 | len_bytes ) );
-			for( int i = len_bytes - 1; i >= 0; i-- )
+			// Build tag
+			for( int i = ( sizeof( element.tag.value ) - __builtin_clz( element.tag.value ) / 8 ) - 1; i >= 0; i-- )
 			{
-				out.push_back( ( len >> ( i * 8 ) ) & 0xFF );
+				out.push_back( ( element.tag.value >> ( i * 8 ) ) & 0xFF );
+			}
+			// Build length
+			size_t len = element.value.size();
+			if ( data )
+			{
+				len = data->size();
+			}
+			if ( len <= 127 )
+			{
+				// Definite short form
+				out.push_back( len & 0x7F );
+			} else {
+				// Definite long form
+				int len_bytes = 4 - __builtin_clz( len ) / 8;
+				out.push_back( (unsigned char)( 0x80 | len_bytes ) );
+				for( int i = len_bytes - 1; i >= 0; i-- )
+				{
+					out.push_back( ( len >> ( i * 8 ) ) & 0xFF );
+				}
 			}
 		}
 		// Append data
