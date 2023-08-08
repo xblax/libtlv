@@ -877,17 +877,18 @@ std::vector<unsigned char> Tlv::dump() const
 	build_stack.push( std::make_pair( it->second, std::vector<unsigned char>() ) );
 	for( ++it; it != build_items.end(); ++it )
 	{
-		if ( it->first < build_stack.size() )
+		while( it->first < build_stack.size() )
 		{
 			auto top = build_stack.top();
 			build_stack.pop();
 			build_tag( build_stack.top().second, *top.first, &top.second );
 		}
+
 		if ( it->second->children.empty() )
 		{
 			build_tag( build_stack.top().second, *it->second );
 		}
-		else if ( it->first >= build_stack.size() )
+		else
 		{
 			build_stack.push( std::make_pair( it->second, std::vector<unsigned char>() ) );
 		}
