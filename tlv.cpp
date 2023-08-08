@@ -513,29 +513,26 @@ Tlv::Tlv() :
 }
 
 Tlv::Tlv( const Tag tag ) :
-	data_( new Data )
+	Tlv()
 {
 	data_->tag = tag;
 }
 
 Tlv::Tlv( const Tag tag, const Value &data ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value = data;
 }
 
 Tlv::Tlv( const Tag tag, const Value &&data ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value = std::move( data );
 }
 
 Tlv::Tlv( const Tag tag, const unsigned char *data, size_t size ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value = Value( data, data + size );
 }
 
@@ -544,9 +541,8 @@ Tlv::Tlv( const Tag tag, const char *s ) :
 {}
 
 Tlv::Tlv( const Tag tag, const std::string &s ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value = Value( s.data(), s.data() + s.size() );
 }
 
@@ -570,16 +566,14 @@ void build_int_value( Tlv::Value &buf, T value )
 }
 
 Tlv::Tlv( const Tag tag, bool b ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value.push_back( (unsigned char)b );
 }
 
 Tlv::Tlv( const Tag tag, int8_t i ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value.push_back( i );
 }
 
@@ -602,9 +596,8 @@ Tlv::Tlv( const Tag tag, int64_t i ) :
 }
 
 Tlv::Tlv( const Tag tag, uint8_t i ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	data_->value.push_back( i );
 }
 
@@ -627,9 +620,8 @@ Tlv::Tlv( const Tag tag, uint64_t i ) :
 }
 
 Tlv::Tlv( const Tag tag, const Tlv &child ) :
-	data_( new Data )
+	Tlv( tag )
 {
-	data_->tag = tag;
 	push_back( child );
 }
 
