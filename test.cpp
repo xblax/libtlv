@@ -6,7 +6,6 @@
 
 int main( int argc, char** argv)
 {
-	MemoryLeakWarningPlugin::turnOffNewDeleteOverloads();
 	return CommandLineTestRunner::RunAllTests( argc, argv );
 }
 
@@ -260,18 +259,15 @@ TEST(TlvBuild, BuildTree1)
 	 * 		93	ABBCCDD
 	 */
 	Tlv root( 0x9F8501 );
+	CHECK_EQUAL( 0x9F8501, root.tag().value );
 	root.push_back( Tlv( 0x92, 0x123 ) );
 	CHECK_EQUAL( 0x92, root.back().tag().value );
-	CHECK_EQUAL( 0x9F8501, root.back().parent().tag().value );
 	root.push_back( Tlv( 0xAA ) );
 	CHECK_EQUAL( 0xAA, root.back().tag().value );
-	CHECK_EQUAL( 0x9F8501, root.back().parent().tag().value );
 	root.back().push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
 	CHECK_EQUAL( 0x8A, root.back().back().tag().value );
-	CHECK_EQUAL( 0xAA, root.back().back().parent().tag().value );
 	root.push_back( Tlv( 0x93, 0xABBCCDD ) );
 	CHECK_EQUAL( 0x93, root.back().tag().value );
-	CHECK_EQUAL( 0x9F8501, root.back().parent().tag().value );
 	STRCMP_EQUAL( "9F85011292020123AA068A047465737493040ABBCCDD", hexify( root.dump() ).c_str() );
 }
 
@@ -377,21 +373,18 @@ TEST(TlvBuild, Graft1)
 	// AA
 	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value );
 	CHECK( _9F8501_it->has_parent() );
-	CHECK_EQUAL( 0x9F8501, _9F8501_it->parent().tag().value );
 	CHECK( _9F8501_it->has_children() );
 	auto _AA = _9F8501_it->children();
 	auto _AA_it = _AA.begin();
 	// 8A
 	CHECK_EQUAL( 0x8A, _AA_it->tag().value );
 	CHECK( _AA_it->has_parent() );
-	CHECK_EQUAL( 0xAA, _AA_it->parent().tag().value );
 	CHECK_FALSE( _AA_it->has_children() );
 	STRCMP_EQUAL( "test", _AA_it->string().c_str() );
 	// 93
 	_9F8501_it++;
 	CHECK_EQUAL( 0x93, _9F8501_it->tag().value );
 	CHECK( _9F8501_it->has_parent() );
-	CHECK_EQUAL( 0x9F8501, _9F8501_it->parent().tag().value );
 	CHECK_FALSE( _9F8501_it->has_children() );
 	CHECK_EQUAL( 0x0A, _9F8501_it->value().at( 0 ) );
 	// 5F41

@@ -186,14 +186,15 @@ uint32_t Tlv::Tag::tag_number() const
 struct Tlv::Data
 {
 	Tag tag;
-	std::shared_ptr<Data> parent;
+	Data* parent;
 	// Leaf
 	Value value;
 	// Branch
 	std::list<std::shared_ptr<Data>> children;
 
 	Data() :
-		tag( 0u )
+		tag( 0u ),
+		parent( nullptr )
 	{}
 	Data( const Data &rhs ) :
 		tag( rhs.tag ),
@@ -207,6 +208,14 @@ struct Tlv::Data
 		value( std::move( rhs.value ) ),
 		children( std::move( rhs.children ) )
 	{}
+	~Data()
+	{
+		// make sure that parent ptr of children is unset, when parent is destroyed
+		for( auto& child : children )
+		{
+			child->parent = nullptr;
+		}
+	}
 	bool operator==( const Data &rhs ) const
 	{
 		return tag == rhs.tag && parent == rhs.parent && value == rhs.value && children == rhs.children;
@@ -722,7 +731,7 @@ std::list<Tlv> Tlv::parse_all( const unsigned char *data, const size_t size, Sta
 					for( auto &si : subitems )
 					{
 						top->children.push_back( si );
-						si->parent = top;
+						si->parent = top.get();
 						if ( depth > 1 && si->tag.constructed() && si->value.size() > 2 )
 						{
 							backlog.push( si );
@@ -792,7 +801,7 @@ Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, size_t *le
 					for( auto &si : subitems )
 					{
 						top->children.push_back( si );
-						si->parent = top;
+						si->parent = top.get();
 						if ( depth > 1 && si->tag.constructed() && si->value.size() > 2 )
 						{
 							backlog.push( si );
@@ -1041,11 +1050,6 @@ std::list<Tlv> Tlv::children() const
 	return ret;
 }
 
-Tlv Tlv::parent() const
-{
-	return Tlv( data_ ? data_->parent : nullptr );
-}
-
 Tlv Tlv::front() const
 {
 	return ( data_ && !data_->children.empty() ) ? Tlv( data_->children.front() ) : Tlv();
@@ -1200,7 +1204,7 @@ bool Tlv::bfs( const std::list<Tlv> &tree, std::function<bool(Tlv&)> cb )
 
 Tlv& Tlv::parent( const Tlv &p )
 {
-	data_->parent = p.data_;
+	data_->parent = p.data_.get();
 	if ( data_->parent )
 	{
 		data_->parent->value.clear();
@@ -1225,7 +1229,7 @@ Tlv& Tlv::push_front( const Tlv &node )
 {
 	data_->value.clear();
 	data_->children.push_front( node.data_ );
-	node.data_->parent = data_;
+	node.data_->parent = data_.get();
 	return *this;
 }
 
@@ -1233,7 +1237,7 @@ Tlv& Tlv::push_back( const Tlv &node )
 {
 	data_->value.clear();
 	data_->children.push_back( node.data_ );
-	node.data_->parent = data_;
+	node.data_->parent = data_.get();
 	return *this;
 }
 
@@ -1268,7 +1272,7 @@ Tlv& Tlv::detach()
 			}
 		}
 	}
-	data_->parent.reset();
+	data_->parent = nullptr;
 	return *this;
 }
 

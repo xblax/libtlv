@@ -225,11 +225,6 @@ public:
 	 ****************/
 
 	/**
-	 * Parent node (or empty element if no parent)
-	 */
-	Tlv parent() const;
-
-	/**
 	 * First node
 	 */
 	Tlv front() const;
