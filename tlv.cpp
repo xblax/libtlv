@@ -193,7 +193,8 @@ struct Tlv::Data
 	std::list<std::shared_ptr<Data>> children;
 
 	Data() :
-		tag( 0u )
+		tag( 0u ),
+		parent( nullptr )
 	{}
 	Data( const Data &rhs ) :
 		tag( rhs.tag ),
