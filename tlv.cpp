@@ -199,18 +199,10 @@ struct Tlv::Data
 	Data() :
 		parent( nullptr )
 	{}
-	Data( const Data &rhs ) :
-		tag( rhs.tag ),
-		parent( rhs.parent ),
-		value( rhs.value ),
-		children( rhs.children )
-	{}
-	Data( const Data &&rhs ) :
-		tag( rhs.tag ),
-		parent( rhs.parent ),
-		value( std::move( rhs.value ) ),
-		children( std::move( rhs.children ) )
-	{}
+
+	Data( const Data &rhs ) = delete;
+	Data operator=( const Data &rhs ) = delete;
+
 	~Data()
 	{
 		// make sure that parent ptr of children is unset, when parent is destroyed
