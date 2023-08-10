@@ -136,11 +136,11 @@ public:
 	explicit Tlv( const Tag, uint64_t );
 	explicit Tlv( const Tag, const Tlv& );
 	Tlv( const Tlv& );
-	Tlv( const Tlv&& );
+	Tlv( Tlv&& );
 	~Tlv();
 
 	Tlv& operator=( const Tlv& );
-	Tlv& operator=( const Tlv&& );
+	Tlv& operator=( Tlv&& );
 	bool operator==( const Tlv& ) const;
 	bool operator!=( const Tlv& ) const;
 	operator bool() const;
@@ -359,5 +359,6 @@ private:
 	std::shared_ptr<Data> data_;
 	class Parser;
 
-	explicit Tlv( std::shared_ptr<Data> data );
+	explicit Tlv( const std::shared_ptr<Data> &data );
+	explicit Tlv( std::shared_ptr<Data> &&data );
 };
