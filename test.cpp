@@ -920,6 +920,23 @@ TEST(TlvBuild, ChildNotDestroyed)
 	CHECK_TRUE( root.front().has_parent() );
 }
 
+TEST(TlvBuild, EmptyTree)
+{
+	Tlv root;
+	CHECK_TRUE( root.empty() );
+	CHECK_EQUAL( 0, root.dump().size() );
+}
+
+TEST(TlvBuild, EmptyRoot)
+{
+	Tlv root; // has no tag
+	root.push_back( Tlv( 0xD1, 0xFF ) );
+	root.push_back( Tlv( 0xD2, 0xFF ) );
+	CHECK_TRUE( root.tag().empty() );
+	// TODO CHECK_FALSE( root.empty() ); - root should not be empty when having children
+	CHECK_EQUAL( "D101FFD201FF", hexify( root.dump()) );
+}
+
 /*
  * TlvParse
  */
