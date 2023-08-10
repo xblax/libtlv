@@ -627,15 +627,19 @@ Tlv::Tlv( const Tag tag, const Tlv &child ) :
 }
 
 Tlv::Tlv( const Tlv &rhs ) :
-	data_( std::make_shared<Data>( *rhs.data_ ) )
-{}
-
-Tlv::Tlv( const Tlv &&rhs ) :
 	data_( rhs.data_ )
 {}
 
-Tlv::Tlv( std::shared_ptr<Data> data ) :
+Tlv::Tlv( Tlv &&rhs ) :
+	data_( std::move(rhs.data_) )
+{}
+
+Tlv::Tlv( const std::shared_ptr<Data> &data ) :
 	data_( data )
+{}
+
+Tlv::Tlv( std::shared_ptr<Data> &&data ) :
+	data_( std::move(data) )
 {}
 
 Tlv::~Tlv()
@@ -647,9 +651,9 @@ Tlv& Tlv::operator=( const Tlv &rhs )
 	return *this;
 }
 
-Tlv& Tlv::operator=( const Tlv &&rhs )
+Tlv& Tlv::operator=( Tlv &&rhs )
 {
-	data_ = rhs.data_;
+	data_ = std::move( rhs.data_ );
 	return *this;
 }
 
