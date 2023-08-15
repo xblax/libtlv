@@ -1534,7 +1534,7 @@ TEST(TlvParse, NestedUnexpectedEnd)
 
 TEST(TlvParse, DuplicateTags)
 {
-	const auto buf = unhexify( "BF0110AA03414243AA03444546AA04100201021101FF" );
+	const auto buf = unhexify( "BF0110DA03414243DA03444546AA04100201021101FF" );
 	Tlv::Status s;
 	size_t len;
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len, 3 );
@@ -1546,16 +1546,16 @@ TEST(TlvParse, DuplicateTags)
 	auto it = tlv.begin();
 	CHECK_EQUAL( 0xBF01, it->tag().value );
 
-	// AA
+	// DA
 	auto _BF10 = it->children();
 	auto _BF10_it = _BF10.begin();
-	CHECK_EQUAL( 0xAA, _BF10_it->tag().value );
+	CHECK_EQUAL( 0xDA, _BF10_it->tag().value );
 	CHECK_EQUAL( 3, _BF10_it->value().size() );
 	STRCMP_EQUAL( "ABC", _BF10_it->string().c_str() );
 
-	// AA
+	// DA
 	_BF10_it++;
-	CHECK_EQUAL( 0xAA, _BF10_it->tag().value );
+	CHECK_EQUAL( 0xDA, _BF10_it->tag().value );
 	CHECK_EQUAL( 3, _BF10_it->value().size() );
 	STRCMP_EQUAL( "DEF", _BF10_it->string().c_str() );
 
