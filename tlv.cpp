@@ -23,9 +23,9 @@ std::vector<unsigned char> unhexify( const std::string &str )
 	{
 		bool flip_flap = str.size() % 2;
 		int offset = flip_flap;
-		for( int i = 0; i < str.size(); i++ )
+		for( size_t i = 0; i < str.size(); i++ )
 		{
-			unsigned char ch = nibble[str[i]];
+			unsigned char ch = nibble[static_cast<uint8_t>( str[i] )];
 			if ( !ch )
 			{
 				ret.clear();
@@ -252,13 +252,6 @@ Tlv::Status::Status( Code code, const char *fmt, ... ) :
 	va_end( vl2 );
 }
 
-Tlv::Status& Tlv::Status::operator=( const Status &rhs )
-{
-	code_ = rhs.code_;
-	description_ = rhs.description_;
-	return *this;
-}
-
 Tlv::Status::operator bool() const
 {
 	return code_ == Code::None;
@@ -367,7 +360,7 @@ class Tlv::Parser
 		size_t size_len = 0;
 		Tlv::Value data;
 		State state = Start;
-		unsigned char b;
+		unsigned char b = 0;
 
 		while( state != End )
 		{
@@ -834,7 +827,6 @@ std::vector<unsigned char> Tlv::dump() const
 				build_items.push_back( std::make_pair( i.first, i.second ) );
 			} else {
 				build_items.push_back( std::make_pair( i.first, i.second ) );
-				auto it = i.second->children.rbegin();
 				for( auto it = i.second->children.rbegin(); it != i.second->children.rend(); ++it )
 				{
 					items.push( std::make_pair( i.first + 1, *it ) );
