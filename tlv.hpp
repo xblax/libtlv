@@ -145,6 +145,8 @@ public:
 	bool operator!=( const Tlv& ) const;
 	operator bool() const;
 
+	bool identical( const Tlv &other ) const;
+
 	/**
 	 * Parse raw data into TLV
 	 * @param[in] data  - input buffer
