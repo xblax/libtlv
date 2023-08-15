@@ -210,7 +210,7 @@ public:
 	/**
 	 * Data size in bytes
 	 */
-	size_t size() const;
+	size_t value_size() const;
 
 	/**
 	 * Has parent node
