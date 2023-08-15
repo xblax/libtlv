@@ -659,6 +659,11 @@ bool Tlv::operator!=( const Tlv &rhs ) const
 	return *data_ != *rhs.data_;
 }
 
+bool Tlv::identical(const Tlv& other) const
+{
+	return data_ == other.data_;
+}
+
 Tlv::operator bool() const
 {
 	return data_ && data_->operator bool();
