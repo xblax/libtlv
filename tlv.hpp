@@ -27,11 +27,12 @@ public:
 		};
 
 		Status();
+		Status( const Status& ) = default;
 		Status( const Code );
 		Status( const Code, const char*, ... )
 			__attribute__((format (printf, 3, 4)));
 
-		Status& operator=( const Status& );
+		Status& operator=( const Status& ) = default;
 		operator bool() const;
 		Code code() const;
 		const std::string& description() const;
