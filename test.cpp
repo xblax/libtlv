@@ -1378,7 +1378,7 @@ TEST(TlvParse, NoData)
 	CHECK( s.empty() );
 	CHECK_EQUAL( 1, tlv.size() );
 	CHECK_EQUAL( 0x10, tlv.back().tag().value );
-	CHECK_EQUAL( 0, tlv.back().size() );
+	CHECK_EQUAL( 0, tlv.back().value_size() );
 }
 
 TEST(TlvParse, TwoByteLen)
@@ -1392,7 +1392,7 @@ TEST(TlvParse, TwoByteLen)
 	auto tlv = Tlv::parse( buf.data(), buf.size(), s );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 0x12, tlv.tag().value );
-	CHECK_EQUAL( 257, tlv.size() );
+	CHECK_EQUAL( 257, tlv.value_size() );
 }
 
 TEST(TlvParse, LenMoreThanFour)

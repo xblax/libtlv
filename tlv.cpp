@@ -935,7 +935,7 @@ bool Tlv::has_value() const
 	return !data_->value.empty();
 }
 
-size_t Tlv::size() const
+size_t Tlv::value_size() const
 {
 	return data_->value.size();
 }
