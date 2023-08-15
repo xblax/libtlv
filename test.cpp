@@ -937,6 +937,84 @@ TEST(TlvBuild, EmptyRoot)
 	CHECK_EQUAL( "D101FFD201FF", hexify( root.dump()) );
 }
 
+TEST(TlvBuild, CopyConstructor)
+{
+	Tlv node( 0xF1 );
+	Tlv other( node );
+	Tlv third( 0xF1 );
+
+	// all three nodes are equal
+	CHECK( node == other );
+	CHECK( other == node );
+	CHECK( node == third );
+	CHECK( third == node );
+	CHECK( other == third );
+	CHECK( third == other );
+
+	// node and other share identiy, other is unrelated
+	CHECK( node.identical( other ));
+	CHECK( other.identical( node ));
+	CHECK_FALSE( node.identical( third ) );
+	CHECK_FALSE( third.identical( node ) );
+	CHECK_FALSE( other.identical( third ) );
+	CHECK_FALSE( third.identical( other ) );
+
+	node.push_back( Tlv( 0xD1, 0xFF ));
+	other.push_back( Tlv( 0xD2, 0xFF ));
+
+	// since node and other share identiy, all changes to node affect other and vice versa
+	CHECK( node.has_children() );
+	CHECK( other.has_children() );
+	CHECK( node.back().identical( other.back() ));
+	CHECK( node.front().identical( other.front() ));
+	CHECK_EQUAL( node.children().size(), other.children().size() );
+
+	// move other to new
+	Tlv moved( std::move(other) );
+	CHECK( node.identical( moved ) );
+	CHECK_FALSE( node.identical( other ) );
+	CHECK( node == moved );
+}
+
+TEST(TlvBuild, AssignmentOperator)
+{
+	Tlv node( 0xF1 );
+	Tlv other = node;
+	Tlv third( 0xF1 );
+
+	// all three nodes are equal
+	CHECK( node == other );
+	CHECK( other == node );
+	CHECK( node == third );
+	CHECK( third == node );
+	CHECK( other == third );
+	CHECK( third == other );
+
+	// node and other share identiy, other is unrelated
+	CHECK( node.identical( other ));
+	CHECK( other.identical( node ));
+	CHECK_FALSE( node.identical( third ) );
+	CHECK_FALSE( third.identical( node ) );
+	CHECK_FALSE( other.identical( third ) );
+	CHECK_FALSE( third.identical( other ) );
+
+	node.push_back( Tlv( 0xD1, 0xFF ));
+	other.push_back( Tlv( 0xD2, 0xFF ));
+
+	// since node and other share identiy, all changes to node affect other and vice versa
+	CHECK( node.has_children() );
+	CHECK( other.has_children() );
+	CHECK( node.back().identical( other.back() ));
+	CHECK( node.front().identical( other.front() ));
+	CHECK_EQUAL( node.children().size(), other.children().size() );
+
+	// move assign other to thrid
+	third = std::move(other);
+	CHECK( node.identical( third ) );
+	CHECK_FALSE( node.identical( other ) );
+	CHECK( node == third );
+}
+
 /*
  * TlvParse
  */
