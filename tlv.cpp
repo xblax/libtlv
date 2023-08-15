@@ -950,7 +950,7 @@ bool Tlv::has_children() const
 	return !data_->children.empty();
 }
 
-size_t Tlv::count() const
+size_t Tlv::num_children() const
 {
 	return data_->children.size();
 }

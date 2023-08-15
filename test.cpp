@@ -1321,7 +1321,7 @@ TEST(TlvParse, NestedTags2)
 	it++;
 	CHECK_EQUAL( 0xBF8501, it->tag().value );
 	CHECK( it->value().empty() );
-	CHECK_EQUAL( 2, it->count() );
+	CHECK_EQUAL( 2, it->num_children() );
 
 	auto _9F8501 = it->children();
 	auto _9F8501_it = _9F8501.begin();
@@ -1329,7 +1329,7 @@ TEST(TlvParse, NestedTags2)
 	// AA
 	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value );
 	CHECK( _9F8501_it->value().empty() );
-	CHECK_EQUAL( 1, _9F8501_it->count() );
+	CHECK_EQUAL( 1, _9F8501_it->num_children() );
 
 	auto _aa = _9F8501_it->children();
 	auto _aa_it = _aa.begin();
