@@ -1504,32 +1504,12 @@ TEST(TlvParse, NestedPadding)
 
 TEST(TlvParse, NestedUnexpectedEnd)
 {
-	const auto buf = unhexify( "100101AA079F1002414210019F110131" );
+	const auto buf = unhexify( "100101AA079F1002414210019F110131" ); // Tag 9F has 0x10 byte length, but only five byte available
 	Tlv::Status s;
 	size_t len;
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len, 2 );
-	CHECK( s.empty() );
-	CHECK_EQUAL( 16, len );
-	CHECK_EQUAL( 3, tlv.size() );
-
-	// 10
-	auto it = tlv.begin();
-	CHECK_EQUAL( 0x10, it->tag().value );
-	CHECK_EQUAL( 1, it->value().size() );
-	CHECK_EQUAL( 0x01, it->value().at( 0 ) );
-
-	// AA
-	it++;
-	CHECK_EQUAL( 0xAA, it->tag().value );
-	CHECK_EQUAL( 7, it->value().size() );
-	CHECK_EQUAL( 0x9F, it->value().front() );
-	CHECK_EQUAL( 0x01, it->value().back() );
-
-	// 9F11
-	it++;
-	CHECK_EQUAL( 0x9F11, it->tag().value );
-	CHECK_EQUAL( 1, it->value().size() );
-	CHECK_EQUAL( 0x31, it->value().at( 0 ) );
+	CHECK_FALSE( s.empty() );
+	CHECK_EQUAL( Tlv::Status::UnexpectedEnd, s.code() );
 }
 
 TEST(TlvParse, DuplicateTags)
