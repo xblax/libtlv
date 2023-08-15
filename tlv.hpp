@@ -225,7 +225,7 @@ public:
 	/**
 	 * Number of direct child nodes
 	 */
-	size_t count() const;
+	size_t num_children() const;
 
 	/****************
 	 * Element access
