@@ -118,8 +118,9 @@ public:
 		bool constructed() const;
 		uint32_t tag_number() const;
 	};
-	typedef std::vector<unsigned char> Value;
-	typedef std::list<Tlv>::iterator ChildIterator;
+	typedef std::vector<uint8_t> Value;
+	typedef std::vector<Tlv> ChildContainer;
+	typedef std::vector<Tlv>::iterator ChildIterator;
 
 	explicit Tlv();
 	explicit Tlv( const Tag );
@@ -270,7 +271,7 @@ public:
 	/**
 	 * Children nodes
 	 */
-	std::list<Tlv> children() const;
+	const ChildContainer& children() const;
 
 	/**
 	 * Node value
