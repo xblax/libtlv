@@ -933,35 +933,25 @@ bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 	{
 		return false;
 	}
-	std::list<Tlv> backlog;
-	if ( data_->children.empty() )
+
+	std::deque<Tlv> queue;
+	queue.push_back( *this );
+
+	while( !queue.empty() )
 	{
-		Tlv node( data_ );
-		return cb( node );
-	}
-	for( auto &c : data_->children )
-	{
-		backlog.push_back( c );
-	}
-	Tlv node( data_ );
-	if ( !cb( node ) )
-	{
-		return false;
-	}
-	while( !backlog.empty() )
-	{
-		auto front = backlog.front();
-		Tlv node( front );
-		backlog.pop_front();
-		if ( !cb( node ) )
+		Tlv currentNode( std::move( queue.front() ) );
+		queue.pop_front();
+
+		// visit node
+		if( !cb( currentNode ) )
 		{
 			return false;
 		}
-		for( auto &c : front.data_->children )
-		{
-			backlog.push_back( c );
-		}
+
+		// add children of current node to queue
+		queue.insert( queue.end(), currentNode.data_->children.begin(), currentNode.data_->children.end() );
 	}
+
 	return true;
 }
 
