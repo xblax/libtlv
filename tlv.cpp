@@ -195,7 +195,7 @@ struct Tlv::Data
 	// Leaf
 	Value value;
 	// Branch
-	std::list<Tlv> children;
+	ChildContainer children;
 
 	Data() :
 		parent( nullptr )
@@ -778,12 +778,12 @@ size_t Tlv::num_children() const
 	return data_->children.size();
 }
 
-std::list<Tlv>::iterator Tlv::begin()
+Tlv::ChildIterator Tlv::begin()
 {
 	return data_->children.begin();
 }
 
-std::list<Tlv>::iterator Tlv::end()
+Tlv::ChildIterator Tlv::end()
 {
 	return data_->children.begin();
 }
@@ -862,7 +862,7 @@ uint64_t Tlv::uint64() const
 	return ret;
 }
 
-std::list<Tlv> Tlv::children() const
+const Tlv::ChildContainer& Tlv::children() const
 {
 	return data_->children;
 }
@@ -997,7 +997,7 @@ Tlv& Tlv::parent( const Tlv &p )
 Tlv& Tlv::push_front( const Tlv &node )
 {
 	data_->value.clear();
-	data_->children.push_front( node );
+	data_->children.insert( data_->children.begin(), node );
 	node.data_->parent = data_.get();
 	return *this;
 }
@@ -1014,7 +1014,7 @@ Tlv& Tlv::pop_front()
 {
 	if ( !data_->children.empty() )
 	{
-		data_->children.pop_front();
+		data_->children.erase( data_->children.begin() );
 	}
 	return *this;
 }
