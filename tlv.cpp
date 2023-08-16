@@ -741,17 +741,6 @@ std::vector<unsigned char> Tlv::dump() const
 	return ret;
 }
 
-std::vector<unsigned char> Tlv::dump( const std::list<Tlv> &tags )
-{
-	std::vector<unsigned char> ret;
-	for( const auto &t : tags )
-	{
-		const auto branch = t.dump();
-		ret.insert( ret.end(), branch.begin(), branch.end() );
-	}
-	return ret;
-}
-
 // Capacity
 
 bool Tlv::empty() const
@@ -942,18 +931,6 @@ bool Tlv::dfs( std::function<bool(Tlv&)> cb ) const
 	return true;
 }
 
-bool Tlv::dfs( const std::list<Tlv> &tree, std::function<bool(Tlv&)> cb )
-{
-	for( const auto &t : tree )
-	{
-		if ( !t.dfs( cb ) )
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
 bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 {
 	if ( !cb )
@@ -974,42 +951,6 @@ bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 	if ( !cb( node ) )
 	{
 		return false;
-	}
-	while( !backlog.empty() )
-	{
-		auto front = backlog.front();
-		Tlv node( front );
-		backlog.pop_front();
-		if ( !cb( node ) )
-		{
-			return false;
-		}
-		for( auto &c : front.data_->children )
-		{
-			backlog.push_back( c );
-		}
-	}
-	return true;
-}
-
-bool Tlv::bfs( const std::list<Tlv> &tree, std::function<bool(Tlv&)> cb )
-{
-	if ( !cb )
-	{
-		return false;
-	}
-	std::list<Tlv> backlog;
-	for( auto &t : tree )
-	{
-		Tlv node( t.data_ );
-		if ( !cb( node ) )
-		{
-			return false;
-		}
-		for( auto &c : t.data_->children )
-		{
-			backlog.push_back( c );
-		}
 	}
 	while( !backlog.empty() )
 	{

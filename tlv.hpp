@@ -198,7 +198,6 @@ public:
 	 * Build tree into byte sequence
 	 */
 	std::vector<unsigned char> dump() const;
-	static std::vector<unsigned char> dump( const std::list<Tlv>& );
 
 	/***********
 	 * Capacity
@@ -321,14 +320,12 @@ public:
 	 * Callback shall return false to stop
 	 */
 	bool dfs( std::function<bool(Tlv&)> ) const;
-	static bool dfs( const std::list<Tlv>&, std::function<bool(Tlv&)> );
 
 	/**
 	 * Breadth first search tree traversal
 	 * Callback shall return false to stop
 	 */
 	bool bfs( std::function<bool(Tlv&)> ) const;
-	static bool bfs( const std::list<Tlv>&, std::function<bool(Tlv&)> );
 
 	/***********
 	 * Modifiers
