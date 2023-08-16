@@ -16,6 +16,11 @@ target_include_directories(tlv PUBLIC .)
 target_compile_features(tlv PUBLIC cxx_std_11)
 target_compile_options(tlv PRIVATE ${LIBTLV_COMPILE_OPTIONS}) 
 
+# Microbench target
+add_executable(microbench EXCLUDE_FROM_ALL microbench.cpp)
+target_link_libraries(microbench tlv)
+target_compile_options(microbench PRIVATE ${LIBTLV_COMPILE_OPTIONS}) 
+
 # Unit Test target
 find_library(L_CPPUTEST CppUTest)
 add_executable(tlv-test EXCLUDE_FROM_ALL test.cpp)
