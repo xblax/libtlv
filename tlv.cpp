@@ -904,30 +904,26 @@ bool Tlv::dfs( std::function<bool(Tlv&)> cb ) const
 	{
 		return false;
 	}
-	std::stack<std::pair<bool, Tlv>> backlog;
-	backlog.push( std::make_pair( false, *this ) );
-	while( !backlog.empty() )
+
+	std::vector<Tlv> stack;
+	stack.reserve( 4 );	 // start with a reasonable default size
+	stack.push_back( *this );
+
+	while( !stack.empty() )
 	{
-		auto &top = backlog.top();
-		if ( !top.first )
+		Tlv currentNode( std::move( stack.back() ) );
+		stack.pop_back();
+
+		// visit node
+		if( !cb( currentNode ) )
 		{
-			if ( !top.second.data_->children.empty() )
-			{
-				for( auto it = top.second.data_->children.rbegin(); it != top.second.data_->children.rend(); ++it )
-				{
-					backlog.push( std::make_pair( false, *it ) );
-				}
-			}
-			top.first = true;
-		} else {
-			Tlv node( top.second );
-			backlog.pop();
-			if ( !cb( node ) )
-			{
-				return false;
-			}
+			return false;
 		}
+
+		// add children of current node to stack - first child must be on top of stack
+		stack.insert( stack.end(), currentNode.data_->children.rbegin(), currentNode.data_->children.rend() );
 	}
+
 	return true;
 }
 
