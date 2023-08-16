@@ -1142,7 +1142,7 @@ TEST(TlvParse, MultipleTags)
 	auto t = Tlv::parse_all( v.data(), v.size(), s, &len );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 9, len );
-	CHECK_EQUAL( 2, t.size() );
+	CHECK_EQUAL( 2, t.num_children() );
 	auto it = t.begin();
 	CHECK_EQUAL( 0x9F10, it->tag().value );
 	CHECK_EQUAL( 1, it->value().size() );
@@ -1178,7 +1178,7 @@ TEST(TlvParse, NestedTags)
 	tags = Tlv::parse_all( v.data(), v.size(), s, &len );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 16, len );
-	CHECK_EQUAL( 2, tags.size() );
+	CHECK_EQUAL( 2, tags.num_children() );
 	auto it = tags.begin();
 	CHECK_EQUAL( 0xBF10, it->tag().value );
 	CHECK_EQUAL( 10, it->value().size() );
@@ -1194,7 +1194,7 @@ TEST(TlvParse, NestedTags)
 	tags = Tlv::parse_all( v.data(), v.size(), s, &len, 2 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 16, len );
-	CHECK_EQUAL( 2, tags.size() );
+	CHECK_EQUAL( 2, tags.num_children() );
 	it = tags.begin();
 	// 9F10
 	CHECK_EQUAL( 0xBF10, it->tag().value );
@@ -1222,7 +1222,7 @@ TEST(TlvParse, NestedTags)
 	tags = Tlv::parse_all( v.data(), v.size(), s, &len, 3 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 16, len );
-	CHECK_EQUAL( 2, tags.size() );
+	CHECK_EQUAL( 2, tags.num_children() );
 	it = tags.begin();
 	// 9F10
 	CHECK_EQUAL( 0xBF10, it->tag().value );
@@ -1268,7 +1268,7 @@ TEST(TlvParse, NestedNotConstructedTags)
 	auto tags = Tlv::parse_all( v.data(), v.size(), s, &len, 3 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 16, len );
-	CHECK_EQUAL( 2, tags.size() );
+	CHECK_EQUAL( 2, tags.num_children() );
 	auto it = tags.begin();
 	// 9F10
 	CHECK_EQUAL( 0xBF10, it->tag().value );
@@ -1309,7 +1309,7 @@ TEST(TlvParse, NestedTags2)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len, 3 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 26, len );
-	CHECK_EQUAL( 3, tlv.size() );
+	CHECK_EQUAL( 3, tlv.num_children() );
 
 	// 45
 	auto it = tlv.begin();
@@ -1376,7 +1376,7 @@ TEST(TlvParse, NoData)
 	Tlv::Status s;
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s );
 	CHECK( s.empty() );
-	CHECK_EQUAL( 1, tlv.size() );
+	CHECK_EQUAL( 1, tlv.num_children() );
 	CHECK_EQUAL( 0x10, tlv.back().tag().value );
 	CHECK_EQUAL( 0, tlv.back().value_size() );
 }
@@ -1412,7 +1412,7 @@ TEST(TlvParse, LeadingZeroes)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 11, len );
-	CHECK_EQUAL( 2, tlv.size() );
+	CHECK_EQUAL( 2, tlv.num_children() );
 
 	// 9F10
 	auto it = tlv.begin();
@@ -1435,7 +1435,7 @@ TEST(TlvParse, InterElementPadding)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 11, len );
-	CHECK_EQUAL( 2, tlv.size() );
+	CHECK_EQUAL( 2, tlv.num_children() );
 
 	// 9F10
 	auto it = tlv.begin();
@@ -1458,7 +1458,7 @@ TEST(TlvParse, TrailingZeroes)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 11, len );
-	CHECK_EQUAL( 2, tlv.size() );
+	CHECK_EQUAL( 2, tlv.num_children() );
 
 	// 9F10
 	auto it = tlv.begin();
@@ -1481,7 +1481,7 @@ TEST(TlvParse, NestedPadding)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len, 2 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 15, len );
-	CHECK_EQUAL( 1, tlv.size() );
+	CHECK_EQUAL( 1, tlv.num_children() );
 
 	// BF10
 	auto it = tlv.begin();
@@ -1520,7 +1520,7 @@ TEST(TlvParse, DuplicateTags)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s, &len, 3 );
 	CHECK( s.empty() );
 	CHECK_EQUAL( 22, len );
-	CHECK_EQUAL( 2, tlv.size() );
+	CHECK_EQUAL( 2, tlv.num_children() );
 
 	// BF01
 	auto it = tlv.begin();

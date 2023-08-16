@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <stack>
 #include <functional>
+#include <algorithm>
 #include <tlv.hpp>
 
 
@@ -169,7 +170,7 @@ Tlv::Tag::Class Tlv::Tag::tag_class() const
 
 bool Tlv::Tag::constructed() const
 {
-	return msb( value ) & 0x20;
+	return empty() || msb( value ) & 0x20;
 }
 
 uint32_t Tlv::Tag::tag_number() const
@@ -194,7 +195,7 @@ struct Tlv::Data
 	// Leaf
 	Value value;
 	// Branch
-	std::list<std::shared_ptr<Data>> children;
+	std::list<Tlv> children;
 
 	Data() :
 		parent( nullptr )
@@ -208,7 +209,7 @@ struct Tlv::Data
 		// make sure that parent ptr of children is unset, when parent is destroyed
 		for( auto& child : children )
 		{
-			child->parent = nullptr;
+			child.data_->parent = nullptr;
 		}
 	}
 	bool operator==( const Data &rhs ) const
@@ -294,199 +295,135 @@ std::string Tlv::Status::to_string() const
 
 class Tlv::Parser
 {
-	enum State
-	{
-		Start = 0,
-		TagStart,
-		Tag,
-		LenStart,
-		Len,
-		Data,
-		End
-	};
-	static constexpr const unsigned char multi_octet_tag_mask_ = 0x1F;
-	static constexpr const unsigned char more_octet_mask_ = 0x80;
-	unsigned const char * const data_;
-	size_t size_;
-	std::list<Tlv::Tag> &path_;
-	size_t offset_;
-	size_t pos_;
+	static constexpr const uint8_t multi_octet_tag_mask_ = 0x1F;
+	static constexpr const uint8_t more_octet_mask_ = 0x80;
 
-	Parser( const unsigned char *data, const size_t size, std::list<Tlv::Tag> &path, size_t &offset ) :
-		data_( data ),
-		size_( size ),
-		path_( path ),
-		offset_( offset ),
-		pos_( 0u )
-	{}
+	const uint8_t* _pos;
+	const uint8_t* _end;
 
-	size_t offset() const
+	inline bool next_byte( uint8_t &byte )
 	{
-		return offset_ + pos_;
-	}
-
-	std::string path() const
-	{
-		char buf[11]; // max unsigned characters
-		std::string ret;
-		for( const auto &i : path_ )
+		if ( _pos < _end )
 		{
-			if ( !ret.empty() )
-			{
-				ret += "/";
-			}
-			snprintf( buf, sizeof( buf ), "%u", i.value );
-			ret += buf;
-		}
-		return ret;
-	}
-
-	inline bool next_byte( unsigned char &buf )
-	{
-		if ( size_ <= pos_ )
-		{
+			byte = *_pos;
+			_pos++;
+			return true;
+		} else {
 			return false;
 		}
-		buf = data_[pos_];
-		pos_++;
-		return true;
 	}
 
-	std::shared_ptr<Tlv::Data> next( Tlv::Status &s )
+	void skip_zero_bytes()
 	{
-		auto ret = std::make_shared<Tlv::Data>();
-		size_t tag_len = 1;
-		size_t size = 0;
-		size_t size_len = 0;
-		Tlv::Value data;
-		State state = Start;
-		unsigned char b = 0;
-
-		while( state != End )
-		{
-			bool has_byte = next_byte( b );
-			if ( !has_byte && state != Start )
-			{
-				s = Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end at [%s] offset %lu", path().c_str(), offset() );
-				return nullptr;
-			}
-			if ( state == Start )
-			{
-				if ( has_byte && b == 0x00 )
-				{
-					continue;
-				}
-				state = TagStart;
-			}
-			switch( state )
-			{
-			case TagStart:
-				if ( !has_byte )
-				{
-					return nullptr;
-				}
-				ret->tag = b;
-				state = ( ( b & multi_octet_tag_mask_ ) == multi_octet_tag_mask_ ) ? Tag : LenStart;
-				break;
-			case Tag:
-				if ( tag_len >= 4 )
-				{
-					s = Tlv::Status( Tlv::Status::BadTag, "Tag is too long at [%s] offset %lu", path().c_str(), offset() );
-					return nullptr;
-				}
-				tag_len += 1;
-				ret->tag = ( ret->tag.value << 8 ) | b;
-				state = ( ( b & more_octet_mask_ ) == more_octet_mask_ ) ? Tag : LenStart;
-				break;
-			case LenStart:
-				if ( ( b & more_octet_mask_ ) == more_octet_mask_ )
-				{
-					size_len = ( b ^ more_octet_mask_ );
-					if ( size_len > 4 )
-					{
-						s = Tlv::Status( Tlv::Status::BadLength, "Tag length is too large at [%s] offset %lu", path().c_str(), offset() );
-						return nullptr;
-					}
-					state = Len;
-				} else {
-					size = b;
-					if ( size > 0 )
-					{
-						ret->value.resize( size );
-						state = Data;
-						size_len = 0;
-					} else {
-						state = End;
-					}
-				}
-				break;
-			case Len:
-				size = ( size << 8 ) | b;
-				size_len--;
-				if ( size_len == 0 )
-				{
-					if ( size > 0 )
-					{
-						ret->value.resize( size );
-						state = Data;
-						size_len = 0;
-					} else {
-						state = End;
-					}
-				}
-				break;
-			case Data:
-				ret->value[size_len] = b;
-				size_len++;
-				if ( size_len >= size )
-				{
-					state = End;
-				}
-				break;
-			default:
-				break;
-			}
-		}
-		return ret;
+		while( _pos < _end && *_pos == 0 ) _pos++;
 	}
 
 public:
-	static std::shared_ptr<Tlv::Data> get_one( const unsigned char *data, const size_t size,
-			std::list<Tlv::Tag> &path, size_t &offset, Tlv::Status &s )
-	{
-		Parser p( data, size, path, offset );
-		auto t = p.next( s );
-		if ( s.empty() )
-		{
-			offset = p.offset();
-		}
 
-		offset = p.offset();
-		return t;
+	struct ShallowNode  // for detected nodes during parser run
+	{
+		Tlv::Tag tag;
+		const uint8_t* begin;
+		const uint8_t* end;
+
+		ShallowNode() :
+			tag(),
+			begin( nullptr ),
+			end( nullptr )
+		{}
+	};
+
+	Parser( const uint8_t* begin, const uint8_t* end ) :
+		_pos( begin ),
+		_end( end )
+	{}
+
+	bool has_next_tag()
+	{
+		skip_zero_bytes();
+		return _pos < _end;
 	}
 
-	static std::list<std::shared_ptr<Tlv::Data>> get_all( const unsigned char *data, const size_t size,
-			std::list<Tlv::Tag> &path, size_t &offset, Tlv::Status &s )
+	const uint8_t* get_pos()
 	{
-		std::list<std::shared_ptr<Tlv::Data>> items;
-		Parser p( data, size, path, offset );
-		while( s.empty() )
+		return _pos;
+	}
+
+	Tlv::Status next( ShallowNode &node )
+	{
+		uint32_t tag = 0;
+		uint32_t length = 0;
+		uint8_t  byte;
+
+		/* Step 1: Read Tag */
+
+		// Read tag first byte
+		if( !next_byte( byte ) )
+			return Tlv::Status( Tlv::Status::BadArgument, "Unexpected error: no next tag available in current data segment" );
+
+		tag = byte;
+
+		// Read tag other bytes
+		if( ( byte & multi_octet_tag_mask_ ) == multi_octet_tag_mask_ )
 		{
-			auto t = p.next( s );
-			if ( !t )
+			bool hasNext = true;
+			for(size_t i = 1; i < sizeof(uint32_t) && hasNext; i++ )
 			{
-				break;
+				if( !next_byte(byte) )
+					return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading tag %X..", tag );
+
+				tag = ( tag << 8 ) + byte;
+				hasNext = (byte & more_octet_mask_);
 			}
-			items.push_back( t );
+
+			if( hasNext )
+			{
+				return Tlv::Status( Tlv::Status::BadLength, "Tag too long while reading tag %X..", tag );
+			}
 		}
 
-		if ( s.empty() )
+		node.tag = tag;
+
+		/* Step 2: Read Length */
+
+		// Read tag length first byte
+		if( !next_byte( byte ) )
+			return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading length of tag %X", tag );
+
+		// Reag tag length other bytes
+		if( byte & more_octet_mask_ )
 		{
-			offset = p.offset();
-		} else {
-			items.clear();
+			size_t num_bytes = byte ^ more_octet_mask_;
+			if( num_bytes > sizeof( length ) )
+				return Tlv::Status( Tlv::Status::BadLength, "Tag length of tag %X too large.", tag );
+
+			for(size_t i = 0; i < num_bytes; i++ )
+			{
+				if( !next_byte( byte ) )
+					return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading length of tag %X", tag );
+
+				length = ( length << 8 ) + byte;
+			}
 		}
-		return items;
+		else
+		{
+			length = byte;
+		}
+
+		// Verify data bounds, advance parser _pos
+		node.begin = _pos;
+		const uint8_t* valueEnd = _pos + length;
+
+		if( valueEnd > _end )
+		{
+			node.end = _end;
+			_pos = _end;
+			return Tlv::Status( Tlv::Status::UnexpectedEnd , "Unexpected end of input while reading data of tag %X", tag );
+		} else {
+			node.end = valueEnd;
+			_pos = valueEnd;
+			return Tlv::Status(); // Status ok
+		}
 	}
 };
 
@@ -669,141 +606,38 @@ Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, size_t 
 	return tlv;
 }
 
-std::list<Tlv> Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, size_t *len, unsigned depth )
+Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, size_t *len, unsigned depth )
 {
-	std::list<Tlv> ret;
-	if ( depth == 0 )
-	{
-		// Depth must be >= 1
-		s = Status( Status::BadArgument, "Invalid argument" );
-	} else {
-		// Get list of tags on current level (without going deeper)
-		std::list<Tlv::Tag> path;
-		size_t offset = 0;
-		auto items = Parser::get_all( data, size, path, offset, s );
-		if ( s.empty() )
-		{
-			if ( depth > 1 )
-			{
-				// Go deeper up to specified depth
-				std::stack<std::shared_ptr<Tlv::Data>> backlog;
-				for( auto &i : items )
-				{
-					if ( i->tag.constructed() && i->value.size() > 2 )
-					{
-						backlog.push( i );
-					}
-				}
-				backlog.push( nullptr );
-				while( !backlog.empty() )
-				{
-					// Get stack top
-					auto top = backlog.top();
-					backlog.pop();
-					if ( !top )
-					{
-						depth--;
-						continue;
-					}
-					// Try to get all subitems
-					size_t sub_offset = 0;
-					Status sub_status;
-					auto subitems = Parser::get_all( top->value.data(), top->value.size(), path, sub_offset, sub_status );
-					if ( !sub_status.empty() || subitems.empty() )
-					{
-						continue;
-					}
-					// Set children
-					top->value.clear();
-					for( auto &si : subitems )
-					{
-						top->children.push_back( si );
-						si->parent = top.get();
-						if ( depth > 1 && si->tag.constructed() && si->value.size() > 2 )
-						{
-							backlog.push( si );
-						}
-					}
-					backlog.push( nullptr );
-				}
-			}
-			// Build parsed root objects
-			for( auto &i : items )
-			{
-				ret.push_back( std::move( Tlv( i ) ) );
-			}
-			// Pass parsed length to the caller
-			if ( len )
-			{
-				*len = offset;
-			}
-		}
-	}
-	return ret;
+	Tlv root;
+	s = root.parse_all( data, size, len, depth );
+	return root;
 }
 
 Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, size_t *len, unsigned depth )
 {
-	Status s;
-	if ( depth == 0 )
+	clear();
+	Status s = _parse_one( *this, data, data + size, depth );
+
+	// TODO provide actual len?
+	if( s && len )
 	{
-		// Depth must be >= 1
-		s = Status( Status::BadArgument, "Invalid argument" );
-	} else {
-		// Get list of tags on current level (without going deeper)
-		std::list<Tlv::Tag> path;
-		size_t offset = 0;
-		data_ = Parser::get_one( data, size, path, offset, s );
-		if ( s.empty() )
-		{
-			if ( depth > 1 )
-			{
-				// Go deeper up to specified depth
-				std::stack<std::shared_ptr<Tlv::Data>> backlog;
-				if ( data_->tag.constructed() && data_->value.size() > 2 )
-				{
-					backlog.push( data_ );
-				}
-				backlog.push( nullptr );
-				while( !backlog.empty() )
-				{
-					// Get stack top
-					auto top = backlog.top();
-					backlog.pop();
-					if ( !top )
-					{
-						depth--;
-						continue;
-					}
-					// Try to get all subitems
-					size_t sub_offset = 0;
-					Status sub_status;
-					auto subitems = Parser::get_all( top->value.data(), top->value.size(), path, sub_offset, sub_status );
-					if ( !sub_status.empty() || subitems.empty() )
-					{
-						continue;
-					}
-					// Set children
-					top->value.clear();
-					for( auto &si : subitems )
-					{
-						top->children.push_back( si );
-						si->parent = top.get();
-						if ( depth > 1 && si->tag.constructed() && si->value.size() > 2 )
-						{
-							backlog.push( si );
-						}
-					}
-					backlog.push( nullptr );
-				}
-			}
-			// Pass parsed length to the caller
-			if ( len )
-			{
-				*len = offset;
-			}
-		}
+		*len = size;
 	}
+
+	return s;
+}
+
+Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, size_t* len, unsigned depth)
+{
+	clear();
+	Status s = _parse( *this, data, data + size, depth );
+
+	// TODO provide actual len?
+	if( s && len )
+	{
+		*len = size;
+	}
+
 	return s;
 }
 
@@ -829,7 +663,7 @@ std::vector<unsigned char> Tlv::dump() const
 				build_items.push_back( std::make_pair( i.first, i.second ) );
 				for( auto it = i.second->children.rbegin(); it != i.second->children.rend(); ++it )
 				{
-					items.push( std::make_pair( i.first + 1, *it ) );
+					items.push( std::make_pair( i.first + 1, it->data_ ) );
 				}
 			}
 		}
@@ -955,6 +789,16 @@ size_t Tlv::num_children() const
 	return data_->children.size();
 }
 
+std::list<Tlv>::iterator Tlv::begin()
+{
+	return data_->children.begin();
+}
+
+std::list<Tlv>::iterator Tlv::end()
+{
+	return data_->children.begin();
+}
+
 // Element access
 
 Tlv::Tag Tlv::tag() const
@@ -1031,12 +875,7 @@ uint64_t Tlv::uint64() const
 
 std::list<Tlv> Tlv::children() const
 {
-	std::list<Tlv> ret;
-	for( const auto &c : data_->children )
-	{
-		ret.push_back( Tlv( c ) );
-	}
-	return ret;
+	return data_->children;
 }
 
 Tlv Tlv::front() const
@@ -1076,16 +915,16 @@ bool Tlv::dfs( std::function<bool(Tlv&)> cb ) const
 	{
 		return false;
 	}
-	std::stack<std::pair<bool, std::shared_ptr<Data>>> backlog;
-	backlog.push( std::make_pair( false, data_ ) );
+	std::stack<std::pair<bool, Tlv>> backlog;
+	backlog.push( std::make_pair( false, *this ) );
 	while( !backlog.empty() )
 	{
 		auto &top = backlog.top();
 		if ( !top.first )
 		{
-			if ( !top.second->children.empty() )
+			if ( !top.second.data_->children.empty() )
 			{
-				for( auto it = top.second->children.rbegin(); it != top.second->children.rend(); ++it )
+				for( auto it = top.second.data_->children.rbegin(); it != top.second.data_->children.rend(); ++it )
 				{
 					backlog.push( std::make_pair( false, *it ) );
 				}
@@ -1121,7 +960,7 @@ bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 	{
 		return false;
 	}
-	std::list<std::shared_ptr<Data>> backlog;
+	std::list<Tlv> backlog;
 	if ( data_->children.empty() )
 	{
 		Tlv node( data_ );
@@ -1145,7 +984,7 @@ bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 		{
 			return false;
 		}
-		for( auto &c : front->children )
+		for( auto &c : front.data_->children )
 		{
 			backlog.push_back( c );
 		}
@@ -1159,7 +998,7 @@ bool Tlv::bfs( const std::list<Tlv> &tree, std::function<bool(Tlv&)> cb )
 	{
 		return false;
 	}
-	std::list<std::shared_ptr<Data>> backlog;
+	std::list<Tlv> backlog;
 	for( auto &t : tree )
 	{
 		Tlv node( t.data_ );
@@ -1181,7 +1020,7 @@ bool Tlv::bfs( const std::list<Tlv> &tree, std::function<bool(Tlv&)> cb )
 		{
 			return false;
 		}
-		for( auto &c : front->children )
+		for( auto &c : front.data_->children )
 		{
 			backlog.push_back( c );
 		}
@@ -1200,7 +1039,7 @@ Tlv& Tlv::parent( const Tlv &p )
 		bool found = false;
 		for( auto it = data_->parent->children.begin(); it != data_->parent->children.end(); ++it )
 		{
-			if ( it->get() == data_.get() )
+			if ( it->data_.get() == data_.get() )
 			{
 				found = true;
 				break;
@@ -1208,7 +1047,7 @@ Tlv& Tlv::parent( const Tlv &p )
 		}
 		if ( !found )
 		{
-			data_->parent->children.push_back( data_ );
+			data_->parent->children.push_back( *this );
 		}
 	}
 	return *this;
@@ -1217,7 +1056,7 @@ Tlv& Tlv::parent( const Tlv &p )
 Tlv& Tlv::push_front( const Tlv &node )
 {
 	data_->value.clear();
-	data_->children.push_front( node.data_ );
+	data_->children.push_front( node );
 	node.data_->parent = data_.get();
 	return *this;
 }
@@ -1225,7 +1064,7 @@ Tlv& Tlv::push_front( const Tlv &node )
 Tlv& Tlv::push_back( const Tlv &node )
 {
 	data_->value.clear();
-	data_->children.push_back( node.data_ );
+	data_->children.push_back( node );
 	node.data_->parent = data_.get();
 	return *this;
 }
@@ -1254,7 +1093,7 @@ Tlv& Tlv::detach()
 	{
 		for( auto it = data_->parent->children.begin(); it != data_->parent->children.end(); ++it )
 		{
-			if ( it->get() == data_.get() )
+			if ( it->data_.get() == data_.get() )
 			{
 				data_->parent->children.erase( it );
 				break;
@@ -1269,9 +1108,9 @@ Tlv& Tlv::erase( const Tag tag )
 {
 	for( auto it = data_->children.begin(); it != data_->children.end(); ++it )
 	{
-		if ( (*it)->tag == tag )
+		if ( it->data_->tag == tag )
 		{
-			it = (*it)->children.erase( it );
+			it = it->data_->children.erase( it );
 		}
 	}
 	return *this;
@@ -1287,4 +1126,109 @@ void Tlv::swap( Tlv &rhs )
 void Tlv::clear()
 {
 	data_ = std::make_shared<Data>();
+}
+
+const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth)
+{
+	if( maxDepth <= 0 )
+	{
+		return Status( Status::BadArgument, "Minimum parse depth is 1" );
+	}
+
+	struct BacklogNode			// for incomplete nodes in backlog
+	{
+		Data* data;
+		const uint8_t* begin;
+		const uint8_t* end;
+		int depth;
+	};
+
+	Status status;
+	std::vector<BacklogNode> backlogStack;
+	std::vector<Parser::ShallowNode> nodeCache;
+
+	backlogStack.push_back( BacklogNode{ root.data_.get(), begin, end, 0 } );
+
+	while( backlogStack.size() > 0 )
+	{
+		BacklogNode curNode = backlogStack.back();
+		backlogStack.pop_back();
+		// int curBacklogSize = backlogStack.size();
+		int curChildDepth = curNode.depth + 1;
+
+		Parser parser(curNode.begin, curNode.end);
+		nodeCache.clear();
+
+		while( parser.has_next_tag() && status )
+		{
+			Parser::ShallowNode node;
+			status = parser.next( node );
+			nodeCache.push_back( node );
+		}
+
+		// TODO reserve child vector size, after migrated from list to vector
+		for( auto &cacheNode : nodeCache )
+		{
+			curNode.data->children.push_back( Tlv() );
+			Data* childDataPtr = curNode.data->children.back().data_.get();
+			childDataPtr->tag = cacheNode.tag;
+			childDataPtr->parent = curNode.data;
+
+			// Constructed nodes must be revisted for parsing of child nodes, unless max depth was reached
+			if ( cacheNode.tag.constructed() && curChildDepth < maxDepth )
+			{
+				backlogStack.push_back( BacklogNode{childDataPtr, cacheNode.begin, cacheNode.end, curChildDepth} );
+			}
+			// Otherwise assign data
+			else
+			{
+				childDataPtr->value.assign(cacheNode.begin, cacheNode.end);
+			}
+		}
+
+		// Reverse end of stack order (childen that we just added to backlog)
+		// This is to make sure we re-vist nodes in correct order from left to right
+		// std::reverse( backlogStack.begin() + curBacklogSize, backlogStack.end() );
+
+		// Abort on parse errors
+		if( !status )
+		{
+			break;
+		}
+	}
+
+	return status;
+}
+
+const Tlv::Status Tlv::_parse_one(Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth)
+{
+	if( maxDepth <= 0 )
+	{
+		return Status( Status::BadArgument, "Minimum parse depth is 1" );
+	}
+
+	Status s;
+	Parser parser(begin, end);
+	if( parser.has_next_tag() )
+	{
+		Parser::ShallowNode shallowNode;
+		s = parser.next( shallowNode );
+
+		if( s )
+		{
+			root.data_->tag = shallowNode.tag;
+			// Do we neet to continue parsing children?
+			if( root.tag().constructed() && maxDepth -1 > 0 )
+			{
+				s = _parse( root, shallowNode.begin, shallowNode.end, maxDepth -1 );
+			}
+			else
+			{
+				root.data_->value.assign( shallowNode.begin, shallowNode.end );
+			}
+
+		}
+	}
+
+	return s;
 }

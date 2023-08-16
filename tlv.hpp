@@ -5,7 +5,8 @@
 #include <list>
 #include <memory>
 #include <functional>
-
+#include <limits>
+#include <iterator>
 
 std::vector<unsigned char> unhexify( const std::string &str );
 std::string hexify( const std::vector<unsigned char> &data, bool lower_case = false );
@@ -118,6 +119,7 @@ public:
 		uint32_t tag_number() const;
 	};
 	typedef std::vector<unsigned char> Value;
+	typedef std::list<Tlv>::iterator ChildIterator;
 
 	explicit Tlv();
 	explicit Tlv( const Tag );
@@ -161,7 +163,7 @@ public:
 			size_t *len = nullptr, unsigned depth = 1 );
 
 	/**
-	 * Parse raw data into TLV series (if tags come one after another)
+	 * Parse raw data into set of TLV nodes (if tags come one after another)
 	 * @param[in] data  - input buffer
 	 * @param[in] size  - input size
 	 * @param[out] s    - operation status
@@ -169,7 +171,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static std::list<Tlv> parse_all( const unsigned char *data, const size_t size, Status &s,
+	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s,
 			size_t *len = nullptr, unsigned depth = 1 );
 
 	/**
@@ -181,6 +183,16 @@ public:
 	 * @return operation status
 	 */
 	Status parse( const unsigned char *data, const size_t size, size_t *len = nullptr, unsigned depth = 1 );
+
+	/**
+	 * Parse raw data into set of TLV nodes (if tags come one after another)
+	 * @param[in] data  - input buffer
+	 * @param[in] size  - input size
+	 * @param[out] len  - parsed data length
+	 * @param[in] depth - parse sub-items recursively up to specified depth
+	 * @return opreation status
+	 */
+	Status parse_all( const unsigned char *data, const size_t size, size_t *len = nullptr, unsigned depth = 1 );
 
 	/**
 	 * Build tree into byte sequence
@@ -230,6 +242,16 @@ public:
 	/****************
 	 * Element access
 	 ****************/
+
+	/**
+	 *  Begin iterator to child nodes
+	 */
+	ChildIterator begin();
+
+	/**
+	 * End iterator to child nodes
+	 */
+	ChildIterator end();
 
 	/**
 	 * First node
@@ -364,4 +386,7 @@ private:
 
 	explicit Tlv( const std::shared_ptr<Data> &data );
 	explicit Tlv( std::shared_ptr<Data> &&data );
+
+	static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
+	static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
 };
