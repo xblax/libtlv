@@ -322,14 +322,14 @@ TEST(TlvBuild, BuildTreeList)
 	 * 		93	ABBCCDD
 	 * 5F41 345
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	tree.push_back( Tlv( 0x45, 1 ) );
 	tree.push_back( Tlv( 0x9F8501 ) );
 	tree.back().push_back( Tlv( 0xAA ) );
 	tree.back().back().push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
 	tree.back().push_back( Tlv( 0x93, 0xABBCCDD ) );
 	tree.push_back( Tlv( 0x5F41, 0x345 ) );
-	STRCMP_EQUAL( "4501019F85010EAA068A047465737493040ABBCCDD5F41020345", hexify( Tlv::dump( tree ) ).c_str() );
+	STRCMP_EQUAL( "4501019F85010EAA068A047465737493040ABBCCDD5F41020345", hexify( tree.dump() ).c_str() );
 }
 
 TEST(TlvBuild, Graft1)
@@ -342,7 +342,7 @@ TEST(TlvBuild, Graft1)
 	 * 		93	ABBCCDD
 	 * 5F41 345
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0x45, 1 ) );
 		tree.push_back( Tlv( 0x9F8501 ) );
@@ -354,19 +354,20 @@ TEST(TlvBuild, Graft1)
 		tree.back().push_front( branch );
 		tree.push_back( Tlv( 0x5F41, 0x345 ) );
 	}
-	STRCMP_EQUAL( "4501019F85010EAA068A047465737493040ABBCCDD5F41020345", hexify( Tlv::dump( tree ) ).c_str() );
+	STRCMP_EQUAL( "4501019F85010EAA068A047465737493040ABBCCDD5F41020345", hexify( tree.dump() ).c_str() );
 
 	// Check parent is set properly
 	auto it = tree.begin();
+	CHECK_FALSE( tree.has_parent() );	// root has no parent
 	// 45
 	CHECK_EQUAL( 0x45, it->tag().value );
-	CHECK_FALSE( it->has_parent() );
+	CHECK( it->has_parent() );			// parent is node without tag
 	CHECK_FALSE( it->has_children() );
 	CHECK_EQUAL( 1, it->value().at( 0 ) );
 	// 9F8501
 	it++;
 	CHECK_EQUAL( 0x9F8501, it->tag().value );
-	CHECK_FALSE( it->has_parent() );
+	CHECK( it->has_parent() );			// parent is node without tag
 	CHECK( it->has_children() );
 	auto _9F8501 = it->children();
 	auto _9F8501_it = _9F8501.begin();
@@ -390,7 +391,7 @@ TEST(TlvBuild, Graft1)
 	// 5F41
 	it++;
 	CHECK_EQUAL( 0x5F41, it->tag().value );
-	CHECK_FALSE( it->has_parent() );
+	CHECK_TRUE( it->has_parent() );		// parent is node without tag
 	CHECK_FALSE( it->has_children() );
 }
 
@@ -404,7 +405,7 @@ TEST(TlvBuild, Graft2)
 	 * 			8A	test
 	 * 5F41 345
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0x45, 1 ) );
 		tree.push_back( Tlv( 0x9F8501 ) );
@@ -416,7 +417,7 @@ TEST(TlvBuild, Graft2)
 		tree.back().push_back( branch );
 		tree.push_back( Tlv( 0x5F41, 0x345 ) );
 	}
-	STRCMP_EQUAL( "4501019F85010E93040ABBCCDDAA068A04746573745F41020345", hexify( Tlv::dump( tree ) ).c_str() );
+	STRCMP_EQUAL( "4501019F85010E93040ABBCCDDAA068A04746573745F41020345", hexify( tree.dump() ).c_str() );
 }
 
 TEST(TlvBuild, AsString)
@@ -508,7 +509,7 @@ TEST(TlvBuild, DuplicateTags)
 	 * 			31	100
 	 * 11	FF
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0xBF01 ) );
 		tree.back().push_back( Tlv( 0x8A, 1 ) );
@@ -519,7 +520,7 @@ TEST(TlvBuild, DuplicateTags)
 		tree.back().back().push_back( Tlv( 0x31, 100 ) );
 		tree.push_back( Tlv( 0x11, 0xFF ) );
 	}
-	STRCMP_EQUAL( "BF01158A01018B034142438A01028B0344454630033101641101FF", hexify( Tlv::dump( tree ) ).c_str() );
+	STRCMP_EQUAL( "BF01158A01018B034142438A01028B0344454630033101641101FF", hexify( tree.dump() ).c_str() );
 }
 
 TEST(TlvBuild, TagWithTrailingZero)
@@ -540,7 +541,7 @@ TEST(TlvBuild, TraverseDfsFull)
 	 * A7
 	 * 		88 5
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0x81, 1 ) );
 		tree.push_back( Tlv( 0xA2 ) );
@@ -551,9 +552,10 @@ TEST(TlvBuild, TraverseDfsFull)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( Tlv::dfs( tree, nullptr ) );
+	CHECK_FALSE( tree.dfs( nullptr ) );
 	int n = 0;
-	bool ret = Tlv::dfs( tree, [&n]( Tlv &node ) -> bool {
+	// TODO: testcase is broken, this is not DFS ordering!
+	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
 		switch( n )
 		{
 		case 0:
@@ -612,6 +614,7 @@ TEST(TlvBuild, TraverseDfsPartial)
 		tree.push_back( Tlv( 0x85, 3 ) );
 	}
 	int n = 0;
+	// TODO: testcase is broken, this is not DFS ordering!
 	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
 		bool ret = true;
 		switch( n )
@@ -696,7 +699,7 @@ TEST(TlvBuild, TraverseBfsFullList)
 	 * A7
 	 * 		88 5
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0x81, 1 ) );
 		tree.push_back( Tlv( 0xA2 ) );
@@ -707,37 +710,40 @@ TEST(TlvBuild, TraverseBfsFullList)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( Tlv::bfs( tree, nullptr ) );
+	CHECK_FALSE( tree.bfs( nullptr ) );
 	int n = 0;
-	bool ret = Tlv::bfs( tree, [&n]( Tlv &node ) -> bool {
+	bool ret = tree.bfs( [&n]( Tlv &node ) -> bool {
 		switch( n )
 		{
 		case 0:
+			CHECK( node.tag().empty() );	// "virtual" root with empty tag
+			break;
+		case 1:
 			CHECK_EQUAL( 0x81, node.tag().value );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
-		case 1:
+		case 2:
 			CHECK_EQUAL( 0xA2, node.tag().value );
 			break;
-		case 2:
+		case 3:
 			CHECK_EQUAL( 0xA7, node.tag().value );
 			break;
-		case 3:
+		case 4:
 			CHECK_EQUAL( 0x83, node.tag().value );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
-		case 4:
+		case 5:
 			CHECK_EQUAL( 0xA4, node.tag().value );
 			break;
-		case 5:
+		case 6:
 			CHECK_EQUAL( 0x86, node.tag().value );
 			CHECK_EQUAL( 4, node.int32() );
 			break;
-		case 6:
+		case 7:
 			CHECK_EQUAL( 0x88, node.tag().value );
 			CHECK_EQUAL( 5, node.int32() );
 			break;
-		case 7:
+		case 8:
 			CHECK_EQUAL( 0x85, node.tag().value );
 			CHECK_EQUAL( 3, node.int32() );
 			break;
@@ -748,7 +754,7 @@ TEST(TlvBuild, TraverseBfsFullList)
 		return true;
 	} );
 	CHECK_EQUAL( true, ret );
-	CHECK_EQUAL( 8, n );
+	CHECK_EQUAL( 9, n );
 }
 
 TEST(TlvBuild, TraverseBfsPartial)
@@ -763,7 +769,7 @@ TEST(TlvBuild, TraverseBfsPartial)
 	 * A7
 	 * 		88 5
 	 */
-	std::list<Tlv> tree;
+	Tlv tree;
 	{
 		tree.push_back( Tlv( 0x81, 1 ) );
 		tree.push_back( Tlv( 0xA2 ) );
@@ -774,26 +780,29 @@ TEST(TlvBuild, TraverseBfsPartial)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( Tlv::bfs( tree, nullptr ) );
+	CHECK_FALSE( tree.bfs( nullptr ) );
 	int n = 0;
-	bool ret = Tlv::bfs( tree, [&n]( Tlv &node ) -> bool {
+	bool ret = tree.bfs( [&n]( Tlv &node ) -> bool {
 		switch( n )
 		{
 		case 0:
+			CHECK( node.tag().empty() );	// "virtual" root with empty tag
+			break;
+		case 1:
 			CHECK_EQUAL( 0x81, node.tag().value );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
-		case 1:
+		case 2:
 			CHECK_EQUAL( 0xA2, node.tag().value );
 			break;
-		case 2:
+		case 3:
 			CHECK_EQUAL( 0xA7, node.tag().value );
 			break;
-		case 3:
+		case 4:
 			CHECK_EQUAL( 0x83, node.tag().value );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
-		case 4:
+		case 5:
 			CHECK_EQUAL( 0xA4, node.tag().value );
 			return false;
 		default:
@@ -803,7 +812,7 @@ TEST(TlvBuild, TraverseBfsPartial)
 		return true;
 	} );
 	CHECK_EQUAL( false, ret );
-	CHECK_EQUAL( 4, n );
+	CHECK_EQUAL( 5, n );
 }
 
 TEST(TlvBuild, SetParent)
