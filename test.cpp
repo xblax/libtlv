@@ -554,38 +554,40 @@ TEST(TlvBuild, TraverseDfsFull)
 	}
 	CHECK_FALSE( tree.dfs( nullptr ) );
 	int n = 0;
-	// TODO: testcase is broken, this is not DFS ordering!
 	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
 		switch( n )
 		{
 		case 0:
+			CHECK( node.tag().empty() );	// "virtual" root with empty tag
+			break;
+		case 1:
 			CHECK_EQUAL( 0x81, node.tag().value );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
-		case 1:
+		case 2:
+			CHECK_EQUAL( 0xA2, node.tag().value );
+			break;
+		case 3:
 			CHECK_EQUAL( 0x83, node.tag().value );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
-		case 2:
+		case 4:
+			CHECK_EQUAL( 0xA4, node.tag().value );
+			break;
+		case 5:
 			CHECK_EQUAL( 0x85, node.tag().value );
 			CHECK_EQUAL( 3, node.int32() );
 			break;
-		case 3:
-			CHECK_EQUAL( 0xA4, node.tag().value );
-			break;
-		case 4:
+		case 6:
 			CHECK_EQUAL( 0x86, node.tag().value );
 			CHECK_EQUAL( 4, node.int32() );
 			break;
-		case 5:
-			CHECK_EQUAL( 0xA2, node.tag().value );
-			break;
-		case 6:
-			CHECK_EQUAL( 0x88, node.tag().value );
-			CHECK_EQUAL( 5, node.int32() );
-			break;
 		case 7:
 			CHECK_EQUAL( 0xA7, node.tag().value );
+			break;
+		case 8:
+			CHECK_EQUAL( 0x88, node.tag().value );
+			CHECK_EQUAL( 5, node.int32() );
 			break;
 		default:
 			FAIL( "Unexpected call" );
@@ -594,7 +596,7 @@ TEST(TlvBuild, TraverseDfsFull)
 		return true;
 	} );
 	CHECK_EQUAL( true, ret );
-	CHECK_EQUAL( 8, n );
+	CHECK_EQUAL( 9, n );
 }
 
 TEST(TlvBuild, TraverseDfsPartial)
@@ -614,18 +616,19 @@ TEST(TlvBuild, TraverseDfsPartial)
 		tree.push_back( Tlv( 0x85, 3 ) );
 	}
 	int n = 0;
-	// TODO: testcase is broken, this is not DFS ordering!
 	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
 		bool ret = true;
 		switch( n )
 		{
 		case 0:
+			CHECK_EQUAL( 0x81, node.tag().value );
+			break;
+		case 1:
 			CHECK_EQUAL( 0x82, node.tag().value );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
-		case 1:
-			CHECK_EQUAL( 0x84, node.tag().value );
-			CHECK_EQUAL( 2, node.int32() );
+		case 2:
+			CHECK_EQUAL( 0x83, node.tag().value );
 			ret = false;
 			break;
 		default:
@@ -635,7 +638,7 @@ TEST(TlvBuild, TraverseDfsPartial)
 		return ret;
 	} );
 	CHECK_EQUAL( false, ret );
-	CHECK_EQUAL( 2, n );
+	CHECK_EQUAL( 3, n );
 }
 
 TEST(TlvBuild, TraverseBfsFull)
