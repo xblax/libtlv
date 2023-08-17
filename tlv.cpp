@@ -778,6 +778,13 @@ size_t Tlv::num_children() const
 	return data_->children.size();
 }
 
+size_t Tlv::tree_size() const
+{
+	size_t size = 0;
+	_dfs_unsafe( [&]( const Tlv& ){ ++size; return Continue; } );
+	return size;
+}
+
 Tlv::ChildIterator Tlv::begin()
 {
 	return data_->children.begin();
