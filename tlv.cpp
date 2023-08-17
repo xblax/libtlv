@@ -1072,28 +1072,33 @@ const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* en
 
 	Status status;
 	std::vector<BacklogNode> backlogStack;
+	backlogStack.reserve(4); // start with reasonable default size
 	std::vector<Parser::ShallowNode> nodeCache;
+	nodeCache.reserve(4);    // start with a reasonable default size
 
 	backlogStack.push_back( BacklogNode{ root.data_.get(), begin, end, 0 } );
 
-	while( backlogStack.size() > 0 )
+	while( !backlogStack.empty() )
 	{
 		BacklogNode curNode = backlogStack.back();
 		backlogStack.pop_back();
-		// int curBacklogSize = backlogStack.size();
 		int curChildDepth = curNode.depth + 1;
 
 		Parser parser(curNode.begin, curNode.end);
 		nodeCache.clear();
 
-		while( parser.has_next_tag() && status )
+		while( parser.has_next_tag() )
 		{
-			Parser::ShallowNode node;
-			status = parser.next( node );
-			nodeCache.push_back( node );
+			nodeCache.emplace_back();
+			status = parser.next( nodeCache.back() );
+
+			if( !status )
+			{
+				return status;
+			}
 		}
 
-		// TODO reserve child vector size, after migrated from list to vector
+		curNode.data->children.reserve( nodeCache.size() );
 		for( auto &cacheNode : nodeCache )
 		{
 			curNode.data->children.push_back( Tlv() );
@@ -1112,10 +1117,6 @@ const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* en
 				childDataPtr->value.assign(cacheNode.begin, cacheNode.end);
 			}
 		}
-
-		// Reverse end of stack order (childen that we just added to backlog)
-		// This is to make sure we re-vist nodes in correct order from left to right
-		// std::reverse( backlogStack.begin() + curBacklogSize, backlogStack.end() );
 
 		// Abort on parse errors
 		if( !status )
