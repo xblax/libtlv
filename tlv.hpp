@@ -316,6 +316,13 @@ public:
 	 * Traversal
 	 ***********/
 
+	enum TraversalAction
+	{
+		Continue,
+		Prune,
+		Break
+	};
+
 	/**
 	 * Depth first search tree traversal
 	 * Callback shall return false to stop
@@ -384,6 +391,9 @@ private:
 
 	explicit Tlv( const std::shared_ptr<Data> &data );
 	explicit Tlv( std::shared_ptr<Data> &&data );
+
+	template< typename T >
+	inline void _dfs_unsafe( T callback ) const;
 
 	static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
 	static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
