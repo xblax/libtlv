@@ -239,6 +239,11 @@ public:
 	 */
 	size_t num_children() const;
 
+	/**
+	 * Size of tree including this node
+	 */
+	size_t tree_size() const;
+
 	/****************
 	 * Element access
 	 ****************/
