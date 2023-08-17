@@ -1055,6 +1055,36 @@ void Tlv::clear()
 	data_ = std::make_shared<Data>();
 }
 
+template< typename T >
+inline void Tlv::_dfs_unsave( T callback ) const
+{
+	std::vector<const Tlv*> stack;
+	stack.reserve( 4 );				// start with a reasonable default size
+	stack.push_back( this );
+
+	while( !stack.empty() )
+	{
+		const Tlv* currentNode = stack.back();
+		stack.pop_back();
+
+		auto ret = callback( *currentNode );
+
+		switch( ret )
+		{
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
+		}
+
+		// add children of current node to stack - first child must be on top of stack
+		auto &children = currentNode->data_->children;
+		for( int r = children.size() - 1; r >= 0; r-- )
+		{
+			stack.push_back(&children[r]);
+		}
+	}
+}
+
 const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth)
 {
 	if( maxDepth <= 0 )
