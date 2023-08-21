@@ -29,9 +29,9 @@ public:
 
 		Status();
 		Status( const Status& ) = default;
-		Status( const Code );
-		Status( const Code, const char*, ... )
-			__attribute__((format (printf, 3, 4)));
+		Status( const Code, const size_t pos );
+		Status( const Code, const size_t pos, const char*, ... )
+			__attribute__((format (printf, 4, 5)));
 
 		Status& operator=( const Status& ) = default;
 		operator bool() const;
@@ -41,8 +41,16 @@ public:
 		void clear();
 		std::string to_string() const;
 
+		/**
+		 * Length of the parsed data. On errors, length indicates the position at which
+		 * the parser stopped.
+		 */
+		size_t parsed_len() { return length_; }
+		void   set_parsed_len( size_t length ){ length_ = length; }
+
 	protected:
 		Code code_;
+		size_t length_;
 		std::string description_;
 	};
 
@@ -160,8 +168,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse( const unsigned char *data, const size_t size, Status &s,
-			size_t *len = nullptr, unsigned depth = 1 );
+	static Tlv parse( const unsigned char *data, const size_t size, Status &s, unsigned depth = 1 );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -172,8 +179,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s,
-			size_t *len = nullptr, unsigned depth = 1 );
+	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s, unsigned depth = 1 );
 
 	/**
 	 * Parse raw data into current TLV object
@@ -183,7 +189,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return operation status
 	 */
-	Status parse( const unsigned char *data, const size_t size, size_t *len = nullptr, unsigned depth = 1 );
+	Status parse( const unsigned char *data, const size_t size, unsigned depth = 1 );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -193,7 +199,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return opreation status
 	 */
-	Status parse_all( const unsigned char *data, const size_t size, size_t *len = nullptr, unsigned depth = 1 );
+	Status parse_all( const unsigned char *data, const size_t size, unsigned depth = 1 );
 
 	/**
 	 * Build tree into byte sequence
@@ -400,6 +406,6 @@ private:
 	template< typename T >
 	inline void _dfs_unsafe( T callback ) const;
 
-	static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
-	static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth = std::numeric_limits<int>::max() );
+	static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
+	static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
 };
