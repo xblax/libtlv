@@ -151,40 +151,40 @@ TEST(TlvTag, TagBuild)
 {
 	// 1 byte (short form)
 	auto tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 5 );
-	CHECK_EQUAL( 0x45, tag.value );
+	CHECK_EQUAL( 0x45, tag.value() );
 	CHECK_EQUAL( 1, tag.size() );
 	CHECK_FALSE( tag.empty() );
 	tag = Tlv::Tag::build( Tlv::Tag::Class::ContextSpecific, true, 30 );
-	CHECK_EQUAL( 0xBE, tag.value );
+	CHECK_EQUAL( 0xBE, tag.value() );
 	CHECK_EQUAL( 1, tag.size() );
 
 	// 2 bytes
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 31 );
-	CHECK_EQUAL( 0x5F1F, tag.value );
+	CHECK_EQUAL( 0x5F1F, tag.value() );
 	CHECK_EQUAL( 2, tag.size() );
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Private, false, 65 );
-	CHECK_EQUAL( 0xDF41, tag.value );
+	CHECK_EQUAL( 0xDF41, tag.value() );
 	CHECK_EQUAL( 2, tag.size() );
 
 	// 3 bytes
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 193 );
-	CHECK_EQUAL( 0x5F8141, tag.value );
+	CHECK_EQUAL( 0x5F8141, tag.value() );
 	CHECK_EQUAL( 3, tag.size() );
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 8385 );
-	CHECK_EQUAL( 0x5FC141, tag.value );
+	CHECK_EQUAL( 0x5FC141, tag.value() );
 	CHECK_EQUAL( 3, tag.size() );
 
 	// 4 bytes
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, 24769 );
-	CHECK_EQUAL( 0x5F81C141, tag.value );
+	CHECK_EQUAL( 0x5F81C141, tag.value() );
 	CHECK_EQUAL( 4, tag.size() );
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Private, true, Tlv::Tag::max_tag_number );
-	CHECK_EQUAL( 0xFFFFFF7F, tag.value );
+	CHECK_EQUAL( 0xFFFFFF7F, tag.value() );
 	CHECK_EQUAL( 4, tag.size() );
 
 	// Overflow
 	tag = Tlv::Tag::build( Tlv::Tag::Class::Application, false, Tlv::Tag::max_tag_number + 1 );
-	CHECK_EQUAL( Tlv::Tag::empty_tag_value, tag.value );
+	CHECK_EQUAL( Tlv::Tag::empty_tag_value, tag.value() );
 	CHECK_EQUAL( 0, tag.size() );
 	CHECK( tag.empty() );
 }
@@ -192,12 +192,12 @@ TEST(TlvTag, TagBuild)
 TEST(TlvTag, UniversalTagBuild)
 {
 	auto tag = Tlv::Tag::build( Tlv::Tag::UniversalTagType::EndOfContent, false );
-	CHECK_EQUAL( 0, tag.value );
+	CHECK_EQUAL( 0, tag.value() );
 	CHECK_EQUAL( 0, tag.size() );
 	CHECK( tag.empty() );
 
 	tag = Tlv::Tag::build( Tlv::Tag::UniversalTagType::Boolean, false );
-	CHECK_EQUAL( 0x01, tag.value );
+	CHECK_EQUAL( 0x01, tag.value() );
 	CHECK_EQUAL( 1, tag.size() );
 	CHECK_FALSE( tag.empty() );
 }
@@ -230,7 +230,7 @@ TEST(TlvBuild, TagValueCtor)
 	Tlv t( 0x1F81, Tlv::Value( data, data + 5 ) );
 	CHECK_FALSE( t.empty() );
 	CHECK( t.has_tag() );
-	CHECK_EQUAL( 0x1F81, t.tag().value );
+	CHECK_EQUAL( 0x1F81, t.tag().value() );
 	CHECK( t.has_value() );
 	std::string s( t.value().begin(), t.value().end() );
 	STRCMP_EQUAL( "test", s.c_str() );
@@ -242,7 +242,7 @@ TEST(TlvBuild, TagBufCtor)
 	Tlv t( 0x1F81, (const unsigned char*)"test", 5 );
 	CHECK_FALSE( t.empty() );
 	CHECK( t.has_tag() );
-	CHECK_EQUAL( 0x1F81, t.tag().value );
+	CHECK_EQUAL( 0x1F81, t.tag().value() );
 	CHECK( t.has_value() );
 	std::string s( t.value().begin(), t.value().end() );
 	STRCMP_EQUAL( "test", s.c_str() );
@@ -259,15 +259,15 @@ TEST(TlvBuild, BuildTree1)
 	 * 		93	ABBCCDD
 	 */
 	Tlv root( 0x9F8501 );
-	CHECK_EQUAL( 0x9F8501, root.tag().value );
+	CHECK_EQUAL( 0x9F8501, root.tag().value() );
 	root.push_back( Tlv( 0x92, 0x123 ) );
-	CHECK_EQUAL( 0x92, root.back().tag().value );
+	CHECK_EQUAL( 0x92, root.back().tag().value() );
 	root.push_back( Tlv( 0xAA ) );
-	CHECK_EQUAL( 0xAA, root.back().tag().value );
+	CHECK_EQUAL( 0xAA, root.back().tag().value() );
 	root.back().push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
-	CHECK_EQUAL( 0x8A, root.back().back().tag().value );
+	CHECK_EQUAL( 0x8A, root.back().back().tag().value() );
 	root.push_back( Tlv( 0x93, 0xABBCCDD ) );
-	CHECK_EQUAL( 0x93, root.back().tag().value );
+	CHECK_EQUAL( 0x93, root.back().tag().value() );
 	STRCMP_EQUAL( "9F85011292020123AA068A047465737493040ABBCCDD", hexify( root.dump() ).c_str() );
 }
 
@@ -360,37 +360,37 @@ TEST(TlvBuild, Graft1)
 	auto it = tree.begin();
 	CHECK_FALSE( tree.has_parent() );	// root has no parent
 	// 45
-	CHECK_EQUAL( 0x45, it->tag().value );
+	CHECK_EQUAL( 0x45, it->tag().value() );
 	CHECK( it->has_parent() );			// parent is node without tag
 	CHECK_FALSE( it->has_children() );
 	CHECK_EQUAL( 1, it->value().at( 0 ) );
 	// 9F8501
 	it++;
-	CHECK_EQUAL( 0x9F8501, it->tag().value );
+	CHECK_EQUAL( 0x9F8501, it->tag().value() );
 	CHECK( it->has_parent() );			// parent is node without tag
 	CHECK( it->has_children() );
 	auto _9F8501 = it->children();
 	auto _9F8501_it = _9F8501.begin();
 	// AA
-	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value );
+	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value() );
 	CHECK( _9F8501_it->has_parent() );
 	CHECK( _9F8501_it->has_children() );
 	auto _AA = _9F8501_it->children();
 	auto _AA_it = _AA.begin();
 	// 8A
-	CHECK_EQUAL( 0x8A, _AA_it->tag().value );
+	CHECK_EQUAL( 0x8A, _AA_it->tag().value() );
 	CHECK( _AA_it->has_parent() );
 	CHECK_FALSE( _AA_it->has_children() );
 	STRCMP_EQUAL( "test", _AA_it->string().c_str() );
 	// 93
 	_9F8501_it++;
-	CHECK_EQUAL( 0x93, _9F8501_it->tag().value );
+	CHECK_EQUAL( 0x93, _9F8501_it->tag().value() );
 	CHECK( _9F8501_it->has_parent() );
 	CHECK_FALSE( _9F8501_it->has_children() );
 	CHECK_EQUAL( 0x0A, _9F8501_it->value().at( 0 ) );
 	// 5F41
 	it++;
-	CHECK_EQUAL( 0x5F41, it->tag().value );
+	CHECK_EQUAL( 0x5F41, it->tag().value() );
 	CHECK_TRUE( it->has_parent() );		// parent is node without tag
 	CHECK_FALSE( it->has_children() );
 }
@@ -561,32 +561,32 @@ TEST(TlvBuild, TraverseDfsFull)
 			CHECK( node.tag().empty() );	// "virtual" root with empty tag
 			break;
 		case 1:
-			CHECK_EQUAL( 0x81, node.tag().value );
+			CHECK_EQUAL( 0x81, node.tag().value() );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
 		case 2:
-			CHECK_EQUAL( 0xA2, node.tag().value );
+			CHECK_EQUAL( 0xA2, node.tag().value() );
 			break;
 		case 3:
-			CHECK_EQUAL( 0x83, node.tag().value );
+			CHECK_EQUAL( 0x83, node.tag().value() );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
 		case 4:
-			CHECK_EQUAL( 0xA4, node.tag().value );
+			CHECK_EQUAL( 0xA4, node.tag().value() );
 			break;
 		case 5:
-			CHECK_EQUAL( 0x85, node.tag().value );
+			CHECK_EQUAL( 0x85, node.tag().value() );
 			CHECK_EQUAL( 3, node.int32() );
 			break;
 		case 6:
-			CHECK_EQUAL( 0x86, node.tag().value );
+			CHECK_EQUAL( 0x86, node.tag().value() );
 			CHECK_EQUAL( 4, node.int32() );
 			break;
 		case 7:
-			CHECK_EQUAL( 0xA7, node.tag().value );
+			CHECK_EQUAL( 0xA7, node.tag().value() );
 			break;
 		case 8:
-			CHECK_EQUAL( 0x88, node.tag().value );
+			CHECK_EQUAL( 0x88, node.tag().value() );
 			CHECK_EQUAL( 5, node.int32() );
 			break;
 		default:
@@ -621,14 +621,14 @@ TEST(TlvBuild, TraverseDfsPartial)
 		switch( n )
 		{
 		case 0:
-			CHECK_EQUAL( 0x81, node.tag().value );
+			CHECK_EQUAL( 0x81, node.tag().value() );
 			break;
 		case 1:
-			CHECK_EQUAL( 0x82, node.tag().value );
+			CHECK_EQUAL( 0x82, node.tag().value() );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
 		case 2:
-			CHECK_EQUAL( 0x83, node.tag().value );
+			CHECK_EQUAL( 0x83, node.tag().value() );
 			ret = false;
 			break;
 		default:
@@ -663,21 +663,21 @@ TEST(TlvBuild, TraverseBfsFull)
 		switch( n )
 		{
 		case 0:
-			CHECK_EQUAL( 0xA2, node.tag().value );
+			CHECK_EQUAL( 0xA2, node.tag().value() );
 			break;
 		case 1:
-			CHECK_EQUAL( 0x83, node.tag().value );
+			CHECK_EQUAL( 0x83, node.tag().value() );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
 		case 2:
-			CHECK_EQUAL( 0xA4, node.tag().value );
+			CHECK_EQUAL( 0xA4, node.tag().value() );
 			break;
 		case 3:
-			CHECK_EQUAL( 0x86, node.tag().value );
+			CHECK_EQUAL( 0x86, node.tag().value() );
 			CHECK_EQUAL( 4, node.int32() );
 			break;
 		case 4:
-			CHECK_EQUAL( 0x85, node.tag().value );
+			CHECK_EQUAL( 0x85, node.tag().value() );
 			CHECK_EQUAL( 3, node.int32() );
 			break;
 		default:
@@ -722,32 +722,32 @@ TEST(TlvBuild, TraverseBfsFullList)
 			CHECK( node.tag().empty() );	// "virtual" root with empty tag
 			break;
 		case 1:
-			CHECK_EQUAL( 0x81, node.tag().value );
+			CHECK_EQUAL( 0x81, node.tag().value() );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
 		case 2:
-			CHECK_EQUAL( 0xA2, node.tag().value );
+			CHECK_EQUAL( 0xA2, node.tag().value() );
 			break;
 		case 3:
-			CHECK_EQUAL( 0xA7, node.tag().value );
+			CHECK_EQUAL( 0xA7, node.tag().value() );
 			break;
 		case 4:
-			CHECK_EQUAL( 0x83, node.tag().value );
+			CHECK_EQUAL( 0x83, node.tag().value() );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
 		case 5:
-			CHECK_EQUAL( 0xA4, node.tag().value );
+			CHECK_EQUAL( 0xA4, node.tag().value() );
 			break;
 		case 6:
-			CHECK_EQUAL( 0x86, node.tag().value );
+			CHECK_EQUAL( 0x86, node.tag().value() );
 			CHECK_EQUAL( 4, node.int32() );
 			break;
 		case 7:
-			CHECK_EQUAL( 0x88, node.tag().value );
+			CHECK_EQUAL( 0x88, node.tag().value() );
 			CHECK_EQUAL( 5, node.int32() );
 			break;
 		case 8:
-			CHECK_EQUAL( 0x85, node.tag().value );
+			CHECK_EQUAL( 0x85, node.tag().value() );
 			CHECK_EQUAL( 3, node.int32() );
 			break;
 		default:
@@ -792,21 +792,21 @@ TEST(TlvBuild, TraverseBfsPartial)
 			CHECK( node.tag().empty() );	// "virtual" root with empty tag
 			break;
 		case 1:
-			CHECK_EQUAL( 0x81, node.tag().value );
+			CHECK_EQUAL( 0x81, node.tag().value() );
 			CHECK_EQUAL( 1, node.int32() );
 			break;
 		case 2:
-			CHECK_EQUAL( 0xA2, node.tag().value );
+			CHECK_EQUAL( 0xA2, node.tag().value() );
 			break;
 		case 3:
-			CHECK_EQUAL( 0xA7, node.tag().value );
+			CHECK_EQUAL( 0xA7, node.tag().value() );
 			break;
 		case 4:
-			CHECK_EQUAL( 0x83, node.tag().value );
+			CHECK_EQUAL( 0x83, node.tag().value() );
 			CHECK_EQUAL( 2, node.int32() );
 			break;
 		case 5:
-			CHECK_EQUAL( 0xA4, node.tag().value );
+			CHECK_EQUAL( 0xA4, node.tag().value() );
 			return false;
 		default:
 			FAIL( "Unexpected call" );
@@ -868,13 +868,13 @@ TEST( TlvBuild, LongLengthEncoding )
 
     CHECK_TRUE( status );
     CHECK_TRUE( parsedData.has_tag() );
-    CHECK_EQUAL( 0xFE, parsedData.tag().value );
+	CHECK_EQUAL( 0xFE, parsedData.tag().value() );
     CHECK_TRUE( parsedData.tag().constructed() );
     CHECK_EQUAL( 2, parsedData.children().size() );
     CHECK_TRUE( parsedData.children().front().has_tag() );
     CHECK_TRUE(  parsedData.children().back().has_tag() );
-    CHECK_EQUAL( 0xDE, parsedData.children().front().tag().value );
-    CHECK_EQUAL( 0xDE, parsedData.children().back().tag().value );
+	CHECK_EQUAL( 0xDE, parsedData.children().front().tag().value() );
+	CHECK_EQUAL( 0xDE, parsedData.children().back().tag().value() );
     CHECK_FALSE( parsedData.children().front().tag().constructed() );
     CHECK_FALSE( parsedData.children().back().tag().constructed() );
     CHECK_TRUE( parsedData.children().front().value() == data );
@@ -928,7 +928,7 @@ TEST(TlvBuild, ChildNotDestroyed)
 	}
 	// Child is not destroyed when out of scope, since still referenced by root
 	CHECK_TRUE( root.has_children() );
-	CHECK_EQUAL( 0xD1, root.front().tag().value );
+	CHECK_EQUAL( 0xD1, root.front().tag().value() );
 	CHECK_TRUE( root.front().has_parent() );
 }
 
@@ -1041,7 +1041,7 @@ TEST(TlvParse, OneByteTag)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 3, s.parsed_len() );
-	CHECK_EQUAL( 0x10, t.tag().value );
+	CHECK_EQUAL( 0x10, t.tag().value() );
 	CHECK_EQUAL( 1, t.value().size() );
 	CHECK_EQUAL( 0, t.value().at( 0 ) );
 }
@@ -1053,7 +1053,7 @@ TEST(TlvParse, TwoByteTag)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 5, s.parsed_len() );
-	CHECK_EQUAL( 0x9F01, t.tag().value );
+	CHECK_EQUAL( 0x9F01, t.tag().value() );
 	CHECK_EQUAL( 2, t.value().size() );
 	CHECK_EQUAL( 0x12, t.value().at( 0 ) );
 	CHECK_EQUAL( 0x34, t.value().at( 1 ) );
@@ -1066,7 +1066,7 @@ TEST(TlvParse, ThreeByteTag)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 6, s.parsed_len() );
-	CHECK_EQUAL( 0xBF8101, t.tag().value );
+	CHECK_EQUAL( 0xBF8101, t.tag().value() );
 	CHECK_EQUAL( 2, t.value().size() );
 	CHECK_EQUAL( 0x12, t.value().at( 0 ) );
 	CHECK_EQUAL( 0x34, t.value().at( 1 ) );
@@ -1079,7 +1079,7 @@ TEST(TlvParse, FourByteTag)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 7, s.parsed_len() );
-	CHECK_EQUAL( 0xBF81FF01, t.tag().value );
+	CHECK_EQUAL( 0xBF81FF01, t.tag().value() );
 	CHECK_EQUAL( 2, t.value().size() );
 	CHECK_EQUAL( 0x12, t.value().at( 0 ) );
 	CHECK_EQUAL( 0x34, t.value().at( 1 ) );
@@ -1100,7 +1100,7 @@ TEST(TlvParse, EmptyData)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 2, s.parsed_len() );
-	CHECK_EQUAL( 0x10, t.tag().value );
+	CHECK_EQUAL( 0x10, t.tag().value() );
 	CHECK( t.value().empty() );
 }
 
@@ -1115,15 +1115,14 @@ TEST(TlvParse, TwoByteLength)
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 261, s.parsed_len() );
-	CHECK_EQUAL( 0x12, t.tag().value );
+	CHECK_EQUAL( 0x12, t.tag().value() );
 	CHECK_EQUAL( 257, t.value().size() );
 }
 
 TEST(TlvParse, BadLength)
 {
 	auto v = unhexify( "1285" );
-	Tlv::Status s; Tlv::Status s2;
-	CHECK( Tlv::Status::OK == s );
+	Tlv::Status s;
 	auto t = Tlv::parse( v.data(), v.size(), s );
 	CHECK_FALSE( s.ok() );
 	CHECK( t.empty() );
@@ -1147,11 +1146,11 @@ TEST(TlvParse, MultipleTags)
 	CHECK_EQUAL( 9, s.parsed_len() );
 	CHECK_EQUAL( 2, t.num_children() );
 	auto it = t.begin();
-	CHECK_EQUAL( 0x9F10, it->tag().value );
+	CHECK_EQUAL( 0x9F10, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0x31, it->value().at( 0 ) );
 	it++;
-	CHECK_EQUAL( 0x8A, it->tag().value );
+	CHECK_EQUAL( 0x8A, it->tag().value() );
 	CHECK_EQUAL( 3, it->value().size() );
 	CHECK_EQUAL( 0x41, it->value().at( 0 ) );
 	CHECK_EQUAL( 0x42, it->value().at( 1 ) );
@@ -1182,12 +1181,12 @@ TEST(TlvParse, NestedTags)
 	CHECK_EQUAL( 16, s.parsed_len() );
 	CHECK_EQUAL( 2, tags.num_children() );
 	auto it = tags.begin();
-	CHECK_EQUAL( 0xBF10, it->tag().value );
+	CHECK_EQUAL( 0xBF10, it->tag().value() );
 	CHECK_EQUAL( 10, it->value().size() );
 	CHECK_EQUAL( 0xAA, it->value().at( 0 ) );
 	CHECK( it->children().empty() );
 	it++;
-	CHECK_EQUAL( 0x8C, it->tag().value );
+	CHECK_EQUAL( 0x8C, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 	CHECK( it->children().empty() );
@@ -1199,23 +1198,23 @@ TEST(TlvParse, NestedTags)
 	CHECK_EQUAL( 2, tags.num_children() );
 	it = tags.begin();
 	// 9F10
-	CHECK_EQUAL( 0xBF10, it->tag().value );
+	CHECK_EQUAL( 0xBF10, it->tag().value() );
 	CHECK( it->value().empty() );
 	auto subitems = it->children();
 	CHECK_EQUAL( 2, subitems.size() );
 	auto s_it = subitems.begin();
 	// AA
-	CHECK_EQUAL( 0xAA, s_it->tag().value );
+	CHECK_EQUAL( 0xAA, s_it->tag().value() );
 	CHECK_EQUAL( 5, s_it->value().size() );
 	CHECK_EQUAL( 0x8B, s_it->value().at( 0 ) );
 	// 10
 	s_it++;
-	CHECK_EQUAL( 0x10, s_it->tag().value );
+	CHECK_EQUAL( 0x10, s_it->tag().value() );
 	CHECK_EQUAL( 1, s_it->value().size() );
 	CHECK_EQUAL( 0x00, s_it->value().at( 0 ) );
 	// 8C
 	it++;
-	CHECK_EQUAL( 0x8C, it->tag().value );
+	CHECK_EQUAL( 0x8C, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 	CHECK( it->children().empty() );
@@ -1227,28 +1226,28 @@ TEST(TlvParse, NestedTags)
 	CHECK_EQUAL( 2, tags.num_children() );
 	it = tags.begin();
 	// 9F10
-	CHECK_EQUAL( 0xBF10, it->tag().value );
+	CHECK_EQUAL( 0xBF10, it->tag().value() );
 	CHECK( it->value().empty() );
 	subitems = it->children();
 	CHECK_EQUAL( 2, subitems.size() );
 	s_it = subitems.begin();
 	// AA
-	CHECK_EQUAL( 0xAA, s_it->tag().value );
+	CHECK_EQUAL( 0xAA, s_it->tag().value() );
 	CHECK( s_it->value().empty() );
 	auto subitems2 = s_it->children();
 	CHECK_EQUAL( 1, subitems2.size() );
 	auto s2_it = subitems2.begin();
-	CHECK_EQUAL( 0x8B, s2_it->tag().value );
+	CHECK_EQUAL( 0x8B, s2_it->tag().value() );
 	CHECK_EQUAL( 3, s2_it->value().size() );
 	CHECK_EQUAL( 0x41, s2_it->value().at( 0 ) );
 	// 10
 	s_it++;
-	CHECK_EQUAL( 0x10, s_it->tag().value );
+	CHECK_EQUAL( 0x10, s_it->tag().value() );
 	CHECK_EQUAL( 1, s_it->value().size() );
 	CHECK_EQUAL( 0x00, s_it->value().at( 0 ) );
 	// 8C
 	it++;
-	CHECK_EQUAL( 0x8C, it->tag().value );
+	CHECK_EQUAL( 0x8C, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 	CHECK( it->children().empty() );
@@ -1272,23 +1271,23 @@ TEST(TlvParse, NestedNotConstructedTags)
 	CHECK_EQUAL( 2, tags.num_children() );
 	auto it = tags.begin();
 	// 9F10
-	CHECK_EQUAL( 0xBF10, it->tag().value );
+	CHECK_EQUAL( 0xBF10, it->tag().value() );
 	CHECK( it->value().empty() );
 	auto subitems = it->children();
 	CHECK_EQUAL( 2, subitems.size() );
 	auto s_it = subitems.begin();
 	// 8A
-	CHECK_EQUAL( 0x8A, s_it->tag().value );
+	CHECK_EQUAL( 0x8A, s_it->tag().value() );
 	CHECK_EQUAL( 5, s_it->value().size() );
 	CHECK_EQUAL( 0x8B, s_it->value().at( 0 ) );
 	// 10
 	s_it++;
-	CHECK_EQUAL( 0x10, s_it->tag().value );
+	CHECK_EQUAL( 0x10, s_it->tag().value() );
 	CHECK_EQUAL( 1, s_it->value().size() );
 	CHECK_EQUAL( 0x00, s_it->value().at( 0 ) );
 	// 8C
 	it++;
-	CHECK_EQUAL( 0x8C, it->tag().value );
+	CHECK_EQUAL( 0x8C, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 	CHECK( it->children().empty() );
@@ -1313,13 +1312,13 @@ TEST(TlvParse, NestedTags2)
 
 	// 45
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0x45, it->tag().value );
+	CHECK_EQUAL( 0x45, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0x01, it->value().at( 0 ) );
 
 	// BF8501
 	it++;
-	CHECK_EQUAL( 0xBF8501, it->tag().value );
+	CHECK_EQUAL( 0xBF8501, it->tag().value() );
 	CHECK( it->value().empty() );
 	CHECK_EQUAL( 2, it->num_children() );
 
@@ -1327,7 +1326,7 @@ TEST(TlvParse, NestedTags2)
 	auto _9F8501_it = _9F8501.begin();
 
 	// AA
-	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value );
+	CHECK_EQUAL( 0xAA, _9F8501_it->tag().value() );
 	CHECK( _9F8501_it->value().empty() );
 	CHECK_EQUAL( 1, _9F8501_it->num_children() );
 
@@ -1335,13 +1334,13 @@ TEST(TlvParse, NestedTags2)
 	auto _aa_it = _aa.begin();
 
 	// 8A
-	CHECK_EQUAL( 0x8A, _aa_it->tag().value );
+	CHECK_EQUAL( 0x8A, _aa_it->tag().value() );
 	CHECK_EQUAL( 4, _aa_it->value().size() );
 	STRCMP_EQUAL( "test", _aa_it->string().c_str() );
 
 	// 93
 	_9F8501_it++;
-	CHECK_EQUAL( 0x93, _9F8501_it->tag().value );
+	CHECK_EQUAL( 0x93, _9F8501_it->tag().value() );
 	CHECK_EQUAL( 4, _9F8501_it->value().size() );
 	CHECK_EQUAL( 0x0A, _9F8501_it->value().at( 0 ) );
 	CHECK_EQUAL( 0xBB, _9F8501_it->value().at( 1 ) );
@@ -1350,7 +1349,7 @@ TEST(TlvParse, NestedTags2)
 
 	// 5F41
 	it++;
-	CHECK_EQUAL( 0x5F41, it->tag().value );
+	CHECK_EQUAL( 0x5F41, it->tag().value() );
 	CHECK_EQUAL( 2, it->value().size() );
 	CHECK_EQUAL( 0x03, it->value().at( 0 ) );
 	CHECK_EQUAL( 0x45, it->value().at( 1 ) );
@@ -1377,7 +1376,7 @@ TEST(TlvParse, NoData)
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 1, tlv.num_children() );
-	CHECK_EQUAL( 0x10, tlv.back().tag().value );
+	CHECK_EQUAL( 0x10, tlv.back().tag().value() );
 	CHECK_EQUAL( 0, tlv.back().value_size() );
 }
 
@@ -1391,7 +1390,7 @@ TEST(TlvParse, TwoByteLen)
 	Tlv::Status s;
 	auto tlv = Tlv::parse( buf.data(), buf.size(), s );
 	CHECK( s.ok() );
-	CHECK_EQUAL( 0x12, tlv.tag().value );
+	CHECK_EQUAL( 0x12, tlv.tag().value() );
 	CHECK_EQUAL( 257, tlv.value_size() );
 }
 
@@ -1415,13 +1414,13 @@ TEST(TlvParse, LeadingZeroes)
 
 	// 9F10
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0x9F10, it->tag().value );
+	CHECK_EQUAL( 0x9F10, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0x31, it->value().at( 0 ) );
 
 	// 8A
 	it++;
-	CHECK_EQUAL( 0x8A, it->tag().value );
+	CHECK_EQUAL( 0x8A, it->tag().value() );
 	CHECK_EQUAL( 3, it->value().size() );
 	STRCMP_EQUAL( "ABC", it->string().c_str() );
 }
@@ -1437,13 +1436,13 @@ TEST(TlvParse, InterElementPadding)
 
 	// 9F10
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0x9F10, it->tag().value );
+	CHECK_EQUAL( 0x9F10, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0x31, it->value().at( 0 ) );
 
 	// 8A
 	it++;
-	CHECK_EQUAL( 0x8A, it->tag().value );
+	CHECK_EQUAL( 0x8A, it->tag().value() );
 	CHECK_EQUAL( 3, it->value().size() );
 	STRCMP_EQUAL( "ABC", it->string().c_str() );
 }
@@ -1459,13 +1458,13 @@ TEST(TlvParse, TrailingZeroes)
 
 	// 9F10
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0x9F10, it->tag().value );
+	CHECK_EQUAL( 0x9F10, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0x31, it->value().at( 0 ) );
 
 	// 8A
 	it++;
-	CHECK_EQUAL( 0x8A, it->tag().value );
+	CHECK_EQUAL( 0x8A, it->tag().value() );
 	CHECK_EQUAL( 3, it->value().size() );
 	STRCMP_EQUAL( "ABC", it->string().c_str() );
 }
@@ -1481,19 +1480,19 @@ TEST(TlvParse, NestedPadding)
 
 	// BF10
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0xBF10, it->tag().value );
+	CHECK_EQUAL( 0xBF10, it->tag().value() );
 
 	auto _BF10 = it->children();
 	auto _BF10_it = _BF10.begin();
 
 	// 8A
-	CHECK_EQUAL( 0x8A, _BF10_it->tag().value );
+	CHECK_EQUAL( 0x8A, _BF10_it->tag().value() );
 	CHECK_EQUAL( 3, _BF10_it->value().size() );
 	STRCMP_EQUAL( "ABC", _BF10_it->string().c_str() );
 
 	// 10
 	_BF10_it++;
-	CHECK_EQUAL( 0x10, _BF10_it->tag().value );
+	CHECK_EQUAL( 0x10, _BF10_it->tag().value() );
 	CHECK_EQUAL( 1, _BF10_it->value().size() );
 	CHECK_EQUAL( 0x00, _BF10_it->value().at( 0 ) );
 }
@@ -1518,36 +1517,36 @@ TEST(TlvParse, DuplicateTags)
 
 	// BF01
 	auto it = tlv.begin();
-	CHECK_EQUAL( 0xBF01, it->tag().value );
+	CHECK_EQUAL( 0xBF01, it->tag().value() );
 
 	// DA
 	auto _BF10 = it->children();
 	auto _BF10_it = _BF10.begin();
-	CHECK_EQUAL( 0xDA, _BF10_it->tag().value );
+	CHECK_EQUAL( 0xDA, _BF10_it->tag().value() );
 	CHECK_EQUAL( 3, _BF10_it->value().size() );
 	STRCMP_EQUAL( "ABC", _BF10_it->string().c_str() );
 
 	// DA
 	_BF10_it++;
-	CHECK_EQUAL( 0xDA, _BF10_it->tag().value );
+	CHECK_EQUAL( 0xDA, _BF10_it->tag().value() );
 	CHECK_EQUAL( 3, _BF10_it->value().size() );
 	STRCMP_EQUAL( "DEF", _BF10_it->string().c_str() );
 
 	// AA
 	_BF10_it++;
-	CHECK_EQUAL( 0xAA, _BF10_it->tag().value );
+	CHECK_EQUAL( 0xAA, _BF10_it->tag().value() );
 
 	// 10
 	auto _10 = _BF10_it->children();
 	auto _10_it = _10.begin();
-	CHECK_EQUAL( 0x10, _10_it->tag().value );
+	CHECK_EQUAL( 0x10, _10_it->tag().value() );
 	CHECK_EQUAL( 2, _10_it->value().size() );
 	CHECK_EQUAL( 0x01, _10_it->value().at( 0 ) );
 	CHECK_EQUAL( 0x02, _10_it->value().at( 1 ) );
 
 	// 11
 	it++;
-	CHECK_EQUAL( 0x11, it->tag().value );
+	CHECK_EQUAL( 0x11, it->tag().value() );
 	CHECK_EQUAL( 1, it->value().size() );
 	CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 }
