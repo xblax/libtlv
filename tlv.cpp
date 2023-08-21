@@ -230,7 +230,7 @@ struct Tlv::Data
  * Error
  */
 Tlv::Status::Status() :
-	code_( Code::None ),
+	code_( Code::OK ),
 	length_( 0 )
 {}
 
@@ -250,46 +250,17 @@ Tlv::Status::Status( Code code, const size_t pos, const char *fmt, ... ) :
 	va_end( vl );
 	if ( len > 0 )
 	{
-		description_.resize( len );
-		vsnprintf( (char*)description_.c_str(), len, fmt, vl2 );
+		message_.resize( len );
+		vsnprintf( (char*)message_.c_str(), len, fmt, vl2 );
 	}
 	va_end( vl2 );
 }
 
-Tlv::Status::operator bool() const
+void Tlv::Status::reset()
 {
-	return code_ == Code::None;
-}
-
-Tlv::Status::Code Tlv::Status::code() const
-{
-	return code_;
-}
-
-const std::string& Tlv::Status::description() const
-{
-	return description_;
-}
-
-bool Tlv::Status::empty() const
-{
-	return code_ == Code::None;
-}
-
-void Tlv::Status::clear()
-{
-	code_ = Code::None;
-	description_.clear();
-}
-
-std::string Tlv::Status::to_string() const
-{
-	if ( empty() )
-	{
-		return "OK";
-	}
-	return std::to_string( code_ ) + ':' + description_;
-
+	code_ = Code::OK;
+	length_ = 0;
+	message_.clear();
 }
 
 /*
@@ -434,7 +405,7 @@ public:
 		} else {
 			node.end = valueEnd;
 			_pos = valueEnd;
-			return Tlv::Status( Tlv::Status::None, get_offset() ); // Status ok
+			return Tlv::Status( Tlv::Status::OK, get_offset() ); // Status ok
 		}
 	}
 };

@@ -18,10 +18,11 @@ public:
 	class Status
 	{
 	public:
+
 		enum Code
 		{
-			None = 0xFFFFFFFF,
-			UnexpectedEnd = 1,
+			OK,
+			UnexpectedEnd,
 			BadTag,
 			BadLength,
 			BadArgument
@@ -29,29 +30,34 @@ public:
 
 		Status();
 		Status( const Status& ) = default;
-		Status( const Code, const size_t pos );
-		Status( const Code, const size_t pos, const char*, ... )
-			__attribute__((format (printf, 4, 5)));
-
+		Status( Status&& ) = default;
 		Status& operator=( const Status& ) = default;
-		operator bool() const;
-		Code code() const;
-		const std::string& description() const;
-		bool empty() const;
-		void clear();
-		std::string to_string() const;
+		Status& operator=( Status&& ) = default;
+
+		bool ok() const { return code_ == Code::OK; }
+		operator bool() const { return ok(); }
+		Code code() const { return code_; }
+		const std::string& message() { return message_; }
+
+		void reset();
 
 		/**
-		 * Length of the parsed data. On errors, length indicates the position at which
-		 * the parser stopped.
+		 * Length of the parsed data. On errors, length indicates the position at which the parser stopped.
 		 */
 		size_t parsed_len() { return length_; }
-		void   set_parsed_len( size_t length ){ length_ = length; }
 
-	protected:
+	private:
+		friend class Tlv;
+
+		Status( const Code, const size_t length );
+		Status( const Code, const size_t length, const char*, ... )
+			__attribute__((format (printf, 4, 5)));
+
+		void set_parsed_len( size_t length ){ length_ = length; }
+
 		Code code_;
 		size_t length_;
-		std::string description_;
+		std::string message_;
 	};
 
 	struct Tag
