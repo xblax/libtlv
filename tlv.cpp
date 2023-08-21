@@ -230,15 +230,18 @@ struct Tlv::Data
  * Error
  */
 Tlv::Status::Status() :
-	code_( Code::None )
+	code_( Code::None ),
+	length_( 0 )
 {}
 
-Tlv::Status::Status( const Code code ) :
-	code_( code )
+Tlv::Status::Status( const Code code, const size_t pos ) :
+	code_( code ),
+	length_( pos )
 {}
 
-Tlv::Status::Status( Code code, const char *fmt, ... ) :
-	code_( code )
+Tlv::Status::Status( Code code, const size_t pos, const char *fmt, ... ) :
+	code_( code ),
+	length_( pos )
 {
 	va_list vl, vl2;
 	va_start( vl, fmt );
@@ -300,6 +303,7 @@ class Tlv::Parser
 
 	const uint8_t* _pos;
 	const uint8_t* _end;
+	const uint8_t* _tree_start;
 
 	inline bool next_byte( uint8_t &byte )
 	{
@@ -333,9 +337,10 @@ public:
 		{}
 	};
 
-	Parser( const uint8_t* begin, const uint8_t* end ) :
+	Parser( const uint8_t* begin, const uint8_t* end, const uint8_t* tree_start ) :
 		_pos( begin ),
-		_end( end )
+		_end( end ),
+		_tree_start( tree_start )
 	{}
 
 	bool has_next_tag()
@@ -344,9 +349,9 @@ public:
 		return _pos < _end;
 	}
 
-	const uint8_t* get_pos()
+	size_t get_offset() const
 	{
-		return _pos;
+		return _pos - _tree_start;
 	}
 
 	Tlv::Status next( ShallowNode &node )
@@ -359,7 +364,8 @@ public:
 
 		// Read tag first byte
 		if( !next_byte( byte ) )
-			return Tlv::Status( Tlv::Status::BadArgument, "Unexpected error: no next tag available in current data segment" );
+			return Tlv::Status( Tlv::Status::BadArgument, get_offset(),
+				"Unexpected error: no more tag at offset %d", static_cast<int>( get_offset() ) );
 
 		tag = byte;
 
@@ -370,7 +376,8 @@ public:
 			for(size_t i = 1; i < sizeof(uint32_t) && hasNext; i++ )
 			{
 				if( !next_byte(byte) )
-					return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading tag %X..", tag );
+					return Tlv::Status( Tlv::Status::UnexpectedEnd, get_offset(),
+						"Unexpected end of input while reading tag '%X' at offset %d", tag, static_cast<int>( get_offset() ) );
 
 				tag = ( tag << 8 ) + byte;
 				hasNext = (byte & more_octet_mask_);
@@ -378,7 +385,8 @@ public:
 
 			if( hasNext )
 			{
-				return Tlv::Status( Tlv::Status::BadLength, "Tag too long while reading tag %X..", tag );
+				return Tlv::Status( Tlv::Status::BadLength, get_offset(),
+					"Tag too long while reading tag '%X' at offset %d", tag, static_cast<int>( get_offset() ) );
 			}
 		}
 
@@ -388,19 +396,22 @@ public:
 
 		// Read tag length first byte
 		if( !next_byte( byte ) )
-			return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading length of tag %X", tag );
+			return Tlv::Status( Tlv::Status::UnexpectedEnd, get_offset(),
+				"Unexpected end of input while reading length of tag '%X' at offset %d", tag, static_cast<int>( get_offset() ) );
 
 		// Reag tag length other bytes
 		if( byte & more_octet_mask_ )
 		{
 			size_t num_bytes = byte ^ more_octet_mask_;
 			if( num_bytes > sizeof( length ) )
-				return Tlv::Status( Tlv::Status::BadLength, "Tag length of tag %X too large.", tag );
+				return Tlv::Status( Tlv::Status::BadLength, get_offset(),
+					"Tag length of tag '%X' too large at offset %d", tag, static_cast<int>( get_offset() ) );
 
 			for(size_t i = 0; i < num_bytes; i++ )
 			{
 				if( !next_byte( byte ) )
-					return Tlv::Status( Tlv::Status::UnexpectedEnd, "Unexpected end of input while reading length of tag %X", tag );
+					return Tlv::Status( Tlv::Status::UnexpectedEnd, get_offset(),
+						"Unexpected end of input while reading length of tag '%X' at offset %d", tag, static_cast<int>( get_offset() ) );
 
 				length = ( length << 8 ) + byte;
 			}
@@ -418,11 +429,12 @@ public:
 		{
 			node.end = _end;
 			_pos = _end;
-			return Tlv::Status( Tlv::Status::UnexpectedEnd , "Unexpected end of input while reading data of tag %X", tag );
+			return Tlv::Status( Tlv::Status::UnexpectedEnd, get_offset(),
+				"Unexpected end of input while reading data of tag '%X' at offset %d", tag, static_cast<int>( get_offset() ) );
 		} else {
 			node.end = valueEnd;
 			_pos = valueEnd;
-			return Tlv::Status(); // Status ok
+			return Tlv::Status( Tlv::Status::None, get_offset() ); // Status ok
 		}
 	}
 };
@@ -599,46 +611,30 @@ Tlv::operator bool() const
 	return data_ && data_->operator bool();
 }
 
-Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, size_t *len, unsigned depth )
+Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, unsigned depth )
 {
 	Tlv tlv;
-	s = tlv.parse( data, size, len, depth );
+	s = tlv.parse( data, size, depth );
 	return tlv;
 }
 
-Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, size_t *len, unsigned depth )
+Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, unsigned depth )
 {
 	Tlv root;
-	s = root.parse_all( data, size, len, depth );
+	s = root.parse_all( data, size, depth );
 	return root;
 }
 
-Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, size_t *len, unsigned depth )
+Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, unsigned depth )
 {
 	clear();
-	Status s = _parse_one( *this, data, data + size, depth );
-
-	// TODO provide actual len?
-	if( s && len )
-	{
-		*len = size;
-	}
-
-	return s;
+	return _parse_one( *this, data, data + size, data, depth );
 }
 
-Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, size_t* len, unsigned depth)
+Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, unsigned depth)
 {
 	clear();
-	Status s = _parse( *this, data, data + size, depth );
-
-	// TODO provide actual len?
-	if( s && len )
-	{
-		*len = size;
-	}
-
-	return s;
+	return _parse( *this, data, data + size, data, depth );
 }
 
 std::vector<unsigned char> Tlv::dump() const
@@ -1105,11 +1101,11 @@ inline void Tlv::_dfs_unsave( T callback ) const
 	}
 }
 
-const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth)
+const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth)
 {
 	if( maxDepth <= 0 )
 	{
-		return Status( Status::BadArgument, "Minimum parse depth is 1" );
+		return Status( Status::BadArgument, begin - tree_begin, "Minimum parse depth is 1" );
 	}
 
 	struct BacklogNode			// for incomplete nodes in backlog
@@ -1134,7 +1130,7 @@ const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* en
 		backlogStack.pop_back();
 		int curChildDepth = curNode.depth + 1;
 
-		Parser parser(curNode.begin, curNode.end);
+		Parser parser(curNode.begin, curNode.end, tree_begin);
 		nodeCache.clear();
 
 		while( parser.has_next_tag() )
@@ -1142,6 +1138,7 @@ const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* en
 			nodeCache.emplace_back();
 			status = parser.next( nodeCache.back() );
 
+			// Abort on parse errors
 			if( !status )
 			{
 				return status;
@@ -1167,26 +1164,22 @@ const Tlv::Status Tlv::_parse(Tlv& root, const uint8_t* begin, const uint8_t* en
 				childDataPtr->value.assign(cacheNode.begin, cacheNode.end);
 			}
 		}
-
-		// Abort on parse errors
-		if( !status )
-		{
-			break;
-		}
 	}
 
+	// The rightmost node, might not be the last that is parsed. Set propper end posistion here.
+	status.set_parsed_len( end - tree_begin );
 	return status;
 }
 
-const Tlv::Status Tlv::_parse_one(Tlv& root, const uint8_t* begin, const uint8_t* end, int maxDepth)
+const Tlv::Status Tlv::_parse_one(Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth)
 {
 	if( maxDepth <= 0 )
 	{
-		return Status( Status::BadArgument, "Minimum parse depth is 1" );
+		return Status( Status::BadArgument, begin - tree_begin, "Minimum parse depth is 1" );
 	}
 
 	Status s;
-	Parser parser(begin, end);
+	Parser parser(begin, end, tree_begin);
 	if( parser.has_next_tag() )
 	{
 		Parser::ShallowNode shallowNode;
@@ -1198,7 +1191,7 @@ const Tlv::Status Tlv::_parse_one(Tlv& root, const uint8_t* begin, const uint8_t
 			// Do we neet to continue parsing children?
 			if( root.tag().constructed() && maxDepth -1 > 0 )
 			{
-				s = _parse( root, shallowNode.begin, shallowNode.end, maxDepth -1 );
+				s = _parse( root, shallowNode.begin, shallowNode.end, tree_begin, maxDepth -1 );
 			}
 			else
 			{
