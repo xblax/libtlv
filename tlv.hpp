@@ -69,8 +69,9 @@ public:
 		std::string message_;
 	};
 
-	struct Tag
+	class Tag
 	{
+	public:
 		enum Class
 		{
 			Universal = 0x00,
@@ -118,29 +119,57 @@ public:
 			OidIri,
 			RelativeOidIri
 		};
+
 		// max tag number fitting into 4 byte constructed tag
 		static const uint32_t max_tag_number = 0x1FFFFF;
 		// empty tag value (0xFF is invalid because it indicates another byte follows)
 		static const uint32_t empty_tag_value = 0;
 
-		uint32_t value;
-
-		static Tlv::Tag build( Class cls, bool constructed, uint32_t tag );
+		static Tlv::Tag build( Class cls, bool constructed, uint32_t tag_number );
 		static Tlv::Tag build( UniversalTagType type, bool constructed );
-		Tag();
-		Tag( uint32_t );
-		Tag( const Tag& );
-		Tag( const Tag&& );
-		Tag& operator=( const Tag& );
-		Tag& operator=( const Tag&& );
-		bool operator==( const Tag& );
-		operator bool() const;
-		bool empty() const;
+
+		Tag() : _value( empty_tag_value ) {}
+		Tag( uint32_t value ) : _value ( value ) {}
+		Tag( const Tag& ) = default;
+
+		Tag& operator=( const Tag& ) = default;
+		bool operator==( const Tag& other ) const { return _value == other._value; }
+
+		/**
+		 * The tag is empty if no value was set.
+		 */
+		bool empty() const { return _value == empty_tag_value; }
+
+		/**
+		 * Number of bytes required to encode the tag.
+		 */
 		size_t size() const;
-		Class tag_class() const;
+
+		/**
+		 * True if the constructed flag of the tag is set.
+		 */
 		bool constructed() const;
+
+		/**
+		 * Returns the tag class of the tag.
+		 */
+		Class tag_class() const;
+
+		/**
+		 * Returns the tag number of the tag.
+		 */
 		uint32_t tag_number() const;
+
+		/**
+		 * Returns the value of the tag.
+		 */
+		uint32_t value() const { return _value; }
+
+	private:
+		friend class Tlv;
+		uint32_t _value;
 	};
+
 	typedef std::vector<uint8_t> Value;
 	typedef std::vector<Tlv> ChildContainer;
 	typedef std::vector<Tlv>::iterator ChildIterator;

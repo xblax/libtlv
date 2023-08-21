@@ -69,7 +69,7 @@ static uint32_t msb( uint32_t value )
  * TlvTag
  */
 
-Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag )
+Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag_number )
 {
 	// See X.690 BER tar encoding
 	static const unsigned char next_byte = 0x80;
@@ -78,24 +78,24 @@ Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag )
 	static const unsigned char constructed_tag = 0x20;
 	static const unsigned char primitive_tag = 0x00;
 	Tlv::Tag ret; // invalid tag
-	if( tag <= max_tag_number ) // must fit in 4 bytes
+	if( tag_number <= max_tag_number ) // must fit in 4 bytes
 	{
-		if ( tag < 31 )
+		if ( tag_number < 31 )
 		{
 			// Short form
-			ret.value = (uint32_t)cls | ( constructed ? constructed_tag : primitive_tag ) | tag;
+			ret._value = (uint32_t)cls | ( constructed ? constructed_tag : primitive_tag ) | tag_number;
 		} else {
 			// Long form
 			// First byte
-			ret.value = (uint32_t)cls | ( constructed ? constructed_tag : primitive_tag ) | first_byte_bits;
+			ret._value = (uint32_t)cls | ( constructed ? constructed_tag : primitive_tag ) | first_byte_bits;
 			// Next bytes
-			size_t effective_bits = sizeof( tag ) * 8 - __builtin_clz( tag );
+			size_t effective_bits = sizeof( tag_number ) * 8 - __builtin_clz( tag_number );
 			for( int i = ( effective_bits / 7 ) + ( ( effective_bits % 7 ) ? 1 : 0 ); i > 0; i-- )
 			{
-				ret.value <<= 8;
-				ret.value |= next_byte | ( ( tag >> ( 7 * ( i - 1 ) ) ) & paytload_bits );
+				ret._value <<= 8;
+				ret._value |= next_byte | ( ( tag_number >> ( 7 * ( i - 1 ) ) ) & paytload_bits );
 			}
-			ret.value ^= next_byte; // Unset last byte "next byte" indicator
+			ret._value ^= next_byte; // Unset last byte "next byte" indicator
 		}
 	}
 	return ret;
@@ -106,81 +106,36 @@ Tlv::Tag Tlv::Tag::build( UniversalTagType type, bool constructed )
 	return build( Class::Universal, constructed, (uint32_t)type );
 }
 
-Tlv::Tag::Tag() :
-		value( empty_tag_value )
-{}
-
-Tlv::Tag::Tag( uint32_t value ) :
-		value( value )
-{}
-
-Tlv::Tag::Tag( const Tag &rhs )
-{
-	value = rhs.value;
-}
-
-Tlv::Tag::Tag( const Tag &&rhs )
-{
-	value = rhs.value;
-}
-
-Tlv::Tag& Tlv::Tag::operator=( const Tag &rhs )
-{
-	value = rhs.value;
-	return *this;
-}
-
-Tlv::Tag& Tlv::Tag::operator=( const Tag &&rhs )
-{
-	value = rhs.value;
-	return *this;
-}
-
-bool Tlv::Tag::operator==( const Tag &rhs )
-{
-	return value == rhs.value;
-}
-
-Tlv::Tag::operator bool() const
-{
-	return value == 0;
-}
-
-bool Tlv::Tag::empty() const
-{
-	return value == empty_tag_value;
-}
-
 size_t Tlv::Tag::size() const
 {
-	if ( value == empty_tag_value )
+	if ( _value == empty_tag_value )
 	{
 		return 0;
 	}
 	else
 	{
-		return 4 - __builtin_clz( value ) / 8;
+		return 4 - __builtin_clz( _value ) / 8;
 	}
 }
 
 Tlv::Tag::Class Tlv::Tag::tag_class() const
 {
-	return (Class)( msb( value ) & 0xC0 );
+	return (Class)( msb( _value ) & 0xC0 );
 }
 
 bool Tlv::Tag::constructed() const
 {
-	return empty() || msb( value ) & 0x20;
+	return empty() || msb( _value ) & 0x20;
 }
 
 uint32_t Tlv::Tag::tag_number() const
 {
-	int i = ( sizeof(value) - __builtin_clz( value ) / 8 );
-	uint32_t tag = ( i > 1 ) ? 0 : ( value & 0x1F );
+	int i = ( sizeof(_value) - __builtin_clz( _value ) / 8 );
+	uint32_t tag = ( i > 1 ) ? 0 : ( _value & 0x1F );
 	for( i--; i > 0; i-- )
 	{
 		tag <<= 7;
-		tag |= ( 0x7F & ( value >> ( ( i - 1 ) * 8 ) ) );
+		tag |= ( 0x7F & ( _value >> ( ( i - 1 ) * 8 ) ) );
 	}
 	return tag;
 }
@@ -676,9 +631,9 @@ std::vector<unsigned char> Tlv::dump() const
 		if( !element.tag.empty() )
 		{
 			// Build tag
-			for( int i = ( sizeof( element.tag.value ) - __builtin_clz( element.tag.value ) / 8 ) - 1; i >= 0; i-- )
+			for( int i = ( sizeof( element.tag._value ) - __builtin_clz( element.tag._value ) / 8 ) - 1; i >= 0; i-- )
 			{
-				out.push_back( ( element.tag.value >> ( i * 8 ) ) & 0xFF );
+				out.push_back( ( element.tag._value >> ( i * 8 ) ) & 0xFF );
 			}
 			// Build length
 			size_t len = size;
