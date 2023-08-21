@@ -1,4 +1,4 @@
-
+﻿
 #include <cstdio>
 #include <cstdarg>
 #include <stack>
@@ -643,32 +643,81 @@ Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, size_t*
 
 std::vector<unsigned char> Tlv::dump() const
 {
-	// Sort elements in build order
-	std::list<std::pair<unsigned, std::shared_ptr<Data>>> build_items;
+	struct BuildStackFrame
 	{
-		std::stack<std::pair<unsigned, std::shared_ptr<Data>>> items;
-		items.push( std::make_pair( 0, data_ ) );
-		while( !items.empty() )
+		const Tlv* node;
+		int nodeNumber;
+		size_t parentOffset;
+	};
+
+	struct BuildElement
+	{
+		const Tlv* node;
+		size_t size;
+	};
+
+	auto len_field_size = [](size_t len)
+	{
+		if( len <= 127 )
+			return 1;
+		else
+			return 4 - __builtin_clz( len ) / 8 + 1;
+	};
+
+	int nodeNumber = 0;
+	std::vector<BuildStackFrame>	buildStack;
+	std::vector<BuildElement>		buildElements;
+	buildStack.push_back( { this, -1, 0 } ); // start with root
+
+	while( !buildStack.empty() )
+	{
+		auto &currentElement = buildStack.back();
+
+		// unexplored node
+		if( currentElement.nodeNumber == -1 )
 		{
-			const auto i = items.top();
-			items.pop();
-			if ( !i.second )
+			// assign node number (dfs order)
+			currentElement.nodeNumber = nodeNumber++;
+			buildElements.push_back( { currentElement.node, 0 } );
+
+			// leaf node: set payload size
+			if( currentElement.node->data_->children.empty() )
 			{
-				continue;
+				buildElements[currentElement.nodeNumber].size += currentElement.node->data_->value.size();
 			}
-			if ( i.second->children.empty() )
+			// branch node: add children to stack
+			else
 			{
-				build_items.push_back( std::make_pair( i.first, i.second ) );
-			} else {
-				build_items.push_back( std::make_pair( i.first, i.second ) );
-				for( auto it = i.second->children.rbegin(); it != i.second->children.rend(); ++it )
+				auto &children = currentElement.node->data_->children;
+				size_t off = 0;
+				for( int r = children.size() -1; r >= 0; --r )
 				{
-					items.push( std::make_pair( i.first + 1, it->data_ ) );
+					buildStack.push_back({ &children[r], -1, ++off });
 				}
 			}
 		}
+		// already explored node, size is known, propagate to parent nodes
+		else
+		{
+			if( currentElement.parentOffset > 0 )
+			{
+				// add own size to parent size + size for tag + len field
+				auto &parentNodeNumber = buildStack[buildStack.size() - 1 - currentElement.parentOffset].nodeNumber;
+				buildElements[parentNodeNumber].size
+						+= currentElement.node->tag().size()							  // tag size
+						+ len_field_size( buildElements[currentElement.nodeNumber].size ) // len field size
+						+ buildElements[currentElement.nodeNumber].size;		          // payload size
+			}
+			buildStack.pop_back();
+		}
 	}
-	static auto build_tag = []( std::vector<unsigned char> &out, Data &element, std::vector<unsigned char> *data = nullptr ) {
+
+	size_t total_size = data_->tag.size() + len_field_size( buildElements[0].size ) + buildElements[0].size;
+
+	std::vector<uint8_t> output;
+	output.reserve(total_size);
+
+	static auto build_tag = []( std::vector<uint8_t> &out, const Data &element, size_t size ) {
 		if( !element.tag.empty() )
 		{
 			// Build tag
@@ -677,11 +726,7 @@ std::vector<unsigned char> Tlv::dump() const
 				out.push_back( ( element.tag.value >> ( i * 8 ) ) & 0xFF );
 			}
 			// Build length
-			size_t len = element.value.size();
-			if ( data )
-			{
-				len = data->size();
-			}
+			size_t len = size;
 			if ( len <= 127 )
 			{
 				// Definite short form
@@ -697,48 +742,16 @@ std::vector<unsigned char> Tlv::dump() const
 			}
 		}
 		// Append data
-		if ( data )
-		{
-			out.insert( out.end(), data->begin(), data->end() );
-		} else {
-			out.insert( out.end(), element.value.begin(), element.value.end() );
-		}
+		out.insert( out.end(), element.value.begin(), element.value.end() );
 	};
-	std::stack<std::pair<std::shared_ptr<Data>, std::vector<unsigned char>>> build_stack;
-	auto it = build_items.begin();
-	build_stack.push( std::make_pair( it->second, std::vector<unsigned char>() ) );
-	for( ++it; it != build_items.end(); ++it )
-	{
-		while( it->first < build_stack.size() )
-		{
-			auto top = build_stack.top();
-			build_stack.pop();
-			build_tag( build_stack.top().second, *top.first, &top.second );
-		}
 
-		if ( it->second->children.empty() )
-		{
-			build_tag( build_stack.top().second, *it->second );
-		}
-		else
-		{
-			build_stack.push( std::make_pair( it->second, std::vector<unsigned char>() ) );
-		}
-	}
-	while( build_stack.size() > 1 )
+
+	for( auto &el : buildElements )
 	{
-		auto top = build_stack.top();
-		build_stack.pop();
-		build_tag( build_stack.top().second, *top.first, &top.second );
+		build_tag( output, *el.node->data_, el.size );
 	}
-	std::vector<unsigned char> ret;
-	if ( build_stack.top().first->value.empty() )
-	{
-		build_tag( ret, *build_stack.top().first, &build_stack.top().second );
-	} else {
-		build_tag( ret, *build_stack.top().first, &build_stack.top().first->value );
-	}
-	return ret;
+
+	return output;
 }
 
 // Capacity
