@@ -807,24 +807,20 @@ Tlv Tlv::back() const
 	return ( data_ && !data_->children.empty() ) ? Tlv( data_->children.back() ) : Tlv();
 }
 
-Tlv& Tlv::set_value( const Value &v )
+void Tlv::set_value( const Value& value )
 {
-	data_->value = v;
+	data_->value = value;
 	data_->children.clear();
-	return *this;
+}
+void Tlv::set_value( Value&& value )
+{
+	data_->value = std::move(value);
+	data_->children.clear();
 }
 
-Tlv& Tlv::set_value( Value &&v )
-{
-	data_->value = std::move(v);
-	data_->children.clear();
-	return *this;
-}
-
-Tlv& Tlv::set_tag( const Tag& tag )
+void Tlv::set_tag( const Tag& tag )
 {
 	data_->tag = tag;
-	return *this;
 }
 
 void Tlv::dfs( std::function<TraversalAction(Tlv&)> callback ) const
@@ -888,9 +884,9 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 
 // Modifiers
 
-Tlv& Tlv::parent( const Tlv &p )
+void Tlv::set_parent( const Tlv &parent )
 {
-	data_->parent = p.data_.get();
+	data_->parent = parent.data_.get();
 	if ( data_->parent )
 	{
 		data_->parent->value.clear();
@@ -908,44 +904,39 @@ Tlv& Tlv::parent( const Tlv &p )
 			data_->parent->children.push_back( *this );
 		}
 	}
-	return *this;
 }
 
-Tlv& Tlv::push_front( const Tlv &node )
+void Tlv::push_front( const Tlv &child )
 {
 	data_->value.clear();
-	data_->children.insert( data_->children.begin(), node );
-	node.data_->parent = data_.get();
-	return *this;
+	data_->children.insert( data_->children.begin(), child );
+	child.data_->parent = data_.get();
 }
 
-Tlv& Tlv::push_back( const Tlv &node )
+void Tlv::push_back( const Tlv &child )
 {
 	data_->value.clear();
-	data_->children.push_back( node );
-	node.data_->parent = data_.get();
-	return *this;
+	data_->children.push_back( child );
+	child.data_->parent = data_.get();
 }
 
-Tlv& Tlv::pop_front()
+void Tlv::pop_front()
 {
 	if ( !data_->children.empty() )
 	{
 		data_->children.erase( data_->children.begin() );
 	}
-	return *this;
 }
 
-Tlv& Tlv::pop_back()
+void Tlv::pop_back()
 {
 	if ( !data_->children.empty() )
 	{
 		data_->children.pop_back();
 	}
-	return *this;
 }
 
-Tlv& Tlv::detach()
+void Tlv::detach()
 {
 	if ( data_->parent )
 	{
@@ -959,10 +950,9 @@ Tlv& Tlv::detach()
 		}
 	}
 	data_->parent = nullptr;
-	return *this;
 }
 
-Tlv& Tlv::erase( const Tag tag )
+void Tlv::erase( const Tag tag )
 {
 	for( auto it = data_->children.begin(); it != data_->children.end(); ++it )
 	{
@@ -971,7 +961,6 @@ Tlv& Tlv::erase( const Tag tag )
 			it = it->data_->children.erase( it );
 		}
 	}
-	return *this;
 }
 
 void Tlv::swap( Tlv &rhs )

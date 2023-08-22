@@ -813,7 +813,7 @@ TEST(TlvBuild, SetParent)
 {
 	Tlv root( 0xAA, 10 );
 	Tlv node( 0xA1, "test" );
-	node.parent( root );
+	node.set_parent( root );
 	STRCMP_EQUAL( "AA06A10474657374", hexify( root.dump() ).c_str() );
 }
 

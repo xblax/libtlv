@@ -363,9 +363,9 @@ public:
 	/**************
 	 * Data setters
 	 **************/
-	Tlv& set_value( const Value& );
-	Tlv& set_value( Value && );
-	Tlv& set_tag( const Tag& );
+	void set_value( const Value& value );
+	void set_value( Value&& value );
+	void set_tag( const Tag& tag );
 
 	/***********
 	 * Traversal
@@ -397,40 +397,40 @@ public:
 	/**
 	 * Set parent
 	 */
-	Tlv& parent( const Tlv& );
+	void set_parent( const Tlv& parent );
 
 	/**
 	 * Add new item to the beginning of children list
 	 */
-	Tlv& push_front( const Tlv& );
+	void push_front( const Tlv& child );
 
 	/**
 	 * Add new item to the end of children list
 	 */
-	Tlv& push_back( const Tlv& );
+	void push_back( const Tlv& child );
 
 	/**
 	 * Remove first child node
 	 */
-	Tlv& pop_front();
+	void pop_front();
 
 	/**
 	 * Remove last child node
 	 */
-	Tlv& pop_back();
+	void pop_back();
 
 	/**
 	 * Detach node from parent
 	 */
-	Tlv& detach();
+	void detach();
 
 	/**
 	 * Remove all child nodes with specified tag
 	 */
-	Tlv& erase( const Tag );
+	void erase( const Tag tag );
 
 	/**
-	 * Exchange nodes
+	 * Swar internally referenced nodes.
 	 */
 	void swap( Tlv& );
 
