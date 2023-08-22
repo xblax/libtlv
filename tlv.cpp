@@ -807,24 +807,23 @@ Tlv Tlv::back() const
 	return ( data_ && !data_->children.empty() ) ? Tlv( data_->children.back() ) : Tlv();
 }
 
-Tlv& Tlv::value( const Value &v )
+Tlv& Tlv::set_value( const Value &v )
 {
 	data_->value = v;
 	data_->children.clear();
 	return *this;
 }
 
-Tlv& Tlv::operator=( const Value &v )
+Tlv& Tlv::set_value( Value &&v )
 {
-	data_->value = v;
+	data_->value = std::move(v);
 	data_->children.clear();
 	return *this;
 }
 
-Tlv& Tlv::operator=( const Value &&v )
+Tlv& Tlv::set_tag( const Tag& tag )
 {
-	data_->value = std::move( v );
-	data_->children.clear();
+	data_->tag = tag;
 	return *this;
 }
 

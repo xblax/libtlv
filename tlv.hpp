@@ -363,9 +363,9 @@ public:
 	/**************
 	 * Data setters
 	 **************/
-	Tlv& value( const Value& );
-	Tlv& operator=( const Value& );
-	Tlv& operator=( const Value&& );
+	Tlv& set_value( const Value& );
+	Tlv& set_value( Value && );
+	Tlv& set_tag( const Tag& );
 
 	/***********
 	 * Traversal
