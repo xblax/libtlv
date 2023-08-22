@@ -136,9 +136,14 @@ public:
 		bool operator==( const Tag& other ) const { return _value == other._value; }
 
 		/**
-		 * The tag is empty if no value was set.
+		 * The tag is empty if no tag was set.
 		 */
 		bool empty() const { return _value == empty_tag_value; }
+
+		/**
+		 * True if tag was set (i.e., tag is not empty)
+		 */
+		operator bool() const { return _value != empty_tag_value; }
 
 		/**
 		 * Number of bytes required to encode the tag.
@@ -199,7 +204,6 @@ public:
 	Tlv& operator=( Tlv&& );
 	bool operator==( const Tlv& ) const;
 	bool operator!=( const Tlv& ) const;
-	operator bool() const;
 
 	/**
 	 * Parse raw data into TLV
@@ -253,9 +257,14 @@ public:
 	 ***********/
 
 	/**
-	 * Is node empty
+	 * A node is considered empty if has no tag, no value and no children.
 	 */
 	bool empty() const;
+
+	/**
+	 * True if Tlv node is not empty.
+	 */
+	operator bool() const;
 
 	/**
 	 * Is tag set

@@ -175,9 +175,9 @@ struct Tlv::Data
 	{
 		return !operator==( rhs );
 	}
-	operator bool() const
+	bool empty()
 	{
-		return !tag.empty();
+		return tag.empty() && value.empty() && children.empty();
 	}
 };
 
@@ -522,7 +522,7 @@ bool Tlv::identical(const Tlv& other) const
 
 Tlv::operator bool() const
 {
-	return data_ && data_->operator bool();
+	return !empty();
 }
 
 Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, unsigned depth )
@@ -668,12 +668,12 @@ std::vector<unsigned char> Tlv::dump() const
 
 bool Tlv::empty() const
 {
-	return !data_ || !data_->operator bool();
+	return !data_ || data_->empty();
 }
 
 bool Tlv::has_tag() const
 {
-	return data_->operator bool();
+	return !data_->tag.empty();
 }
 
 bool Tlv::has_value() const
