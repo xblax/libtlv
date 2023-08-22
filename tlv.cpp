@@ -827,11 +827,11 @@ Tlv& Tlv::set_tag( const Tag& tag )
 	return *this;
 }
 
-bool Tlv::dfs( std::function<bool(Tlv&)> cb ) const
+void Tlv::dfs( std::function<TraversalAction(Tlv&)> callback ) const
 {
-	if ( !cb )
+	if ( !callback )
 	{
-		return false;
+		return;
 	}
 
 	std::vector<Tlv> stack;
@@ -844,23 +844,24 @@ bool Tlv::dfs( std::function<bool(Tlv&)> cb ) const
 		stack.pop_back();
 
 		// visit node
-		if( !cb( currentNode ) )
+		auto ret = callback( currentNode );
+		switch( ret )
 		{
-			return false;
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
 		}
 
 		// add children of current node to stack - first child must be on top of stack
 		stack.insert( stack.end(), currentNode.data_->children.rbegin(), currentNode.data_->children.rend() );
 	}
-
-	return true;
 }
 
-bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
+void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 {
-	if ( !cb )
+	if ( !callback )
 	{
-		return false;
+		return;
 	}
 
 	std::deque<Tlv> queue;
@@ -872,16 +873,17 @@ bool Tlv::bfs( std::function<bool(Tlv&)> cb ) const
 		queue.pop_front();
 
 		// visit node
-		if( !cb( currentNode ) )
+		auto ret = callback( currentNode );
+		switch( ret )
 		{
-			return false;
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
 		}
 
 		// add children of current node to queue
 		queue.insert( queue.end(), currentNode.data_->children.begin(), currentNode.data_->children.end() );
 	}
-
-	return true;
 }
 
 // Modifiers

@@ -379,16 +379,16 @@ public:
 	};
 
 	/**
-	 * Depth first search tree traversal
-	 * Callback shall return false to stop
+	 * Depth first search tree traversal.
+	 * Callback must return one of defined TraversalActions.
 	 */
-	bool dfs( std::function<bool(Tlv&)> ) const;
+	void dfs( std::function<TraversalAction(Tlv&)> ) const;
 
 	/**
-	 * Breadth first search tree traversal
-	 * Callback shall return false to stop
+	 * Breadth first search tree traversal.
+	 * Callback must return one of defined TraversalActions.
 	 */
-	bool bfs( std::function<bool(Tlv&)> ) const;
+	void bfs( std::function<TraversalAction(Tlv&)> ) const;
 
 	/***********
 	 * Modifiers

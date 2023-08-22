@@ -552,9 +552,8 @@ TEST(TlvBuild, TraverseDfsFull)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( tree.dfs( nullptr ) );
 	int n = 0;
-	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
+	tree.dfs( [&n]( Tlv &node ) {
 		switch( n )
 		{
 		case 0:
@@ -593,9 +592,8 @@ TEST(TlvBuild, TraverseDfsFull)
 			FAIL( "Unexpected call" );
 		}
 		n++;
-		return true;
+		return Tlv::Continue;
 	} );
-	CHECK_EQUAL( true, ret );
 	CHECK_EQUAL( 9, n );
 }
 
@@ -616,8 +614,8 @@ TEST(TlvBuild, TraverseDfsPartial)
 		tree.push_back( Tlv( 0x85, 3 ) );
 	}
 	int n = 0;
-	bool ret = tree.dfs( [&n]( Tlv &node ) -> bool {
-		bool ret = true;
+	tree.dfs( [&n]( Tlv &node ) {
+		auto ret = Tlv::Continue;
 		switch( n )
 		{
 		case 0:
@@ -629,7 +627,7 @@ TEST(TlvBuild, TraverseDfsPartial)
 			break;
 		case 2:
 			CHECK_EQUAL( 0x83, node.tag().value() );
-			ret = false;
+			ret = Tlv::Break;;
 			break;
 		default:
 			FAIL( "Unexpected call" );
@@ -637,7 +635,6 @@ TEST(TlvBuild, TraverseDfsPartial)
 		n++;
 		return ret;
 	} );
-	CHECK_EQUAL( false, ret );
 	CHECK_EQUAL( 3, n );
 }
 
@@ -657,9 +654,8 @@ TEST(TlvBuild, TraverseBfsFull)
 		tree.back().push_back( Tlv( 0x85, 3 ) );
 		tree.push_back( Tlv( 0x86, 4 ) );
 	}
-	CHECK_FALSE( tree.bfs( nullptr ) );
 	int n = 0;
-	bool ret = tree.bfs( [&n]( Tlv &node ) -> bool {
+	tree.bfs( [&n]( Tlv &node ) {
 		switch( n )
 		{
 		case 0:
@@ -684,9 +680,8 @@ TEST(TlvBuild, TraverseBfsFull)
 			FAIL( "Unexpected call" );
 		}
 		n++;
-		return true;
+		return Tlv::Continue;
 	} );
-	CHECK_EQUAL( true, ret );
 	CHECK_EQUAL( 5, n );
 }
 
@@ -713,9 +708,8 @@ TEST(TlvBuild, TraverseBfsFullList)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( tree.bfs( nullptr ) );
 	int n = 0;
-	bool ret = tree.bfs( [&n]( Tlv &node ) -> bool {
+	tree.bfs( [&n]( Tlv &node ) {
 		switch( n )
 		{
 		case 0:
@@ -754,9 +748,8 @@ TEST(TlvBuild, TraverseBfsFullList)
 			FAIL( "Unexpected call" );
 		}
 		n++;
-		return true;
+		return Tlv::Continue;
 	} );
-	CHECK_EQUAL( true, ret );
 	CHECK_EQUAL( 9, n );
 }
 
@@ -783,9 +776,8 @@ TEST(TlvBuild, TraverseBfsPartial)
 		tree.push_back( Tlv( 0xA7 ) );
 		tree.back().push_back( Tlv( 0x88, 5 ) );
 	}
-	CHECK_FALSE( tree.bfs( nullptr ) );
 	int n = 0;
-	bool ret = tree.bfs( [&n]( Tlv &node ) -> bool {
+	tree.bfs( [&n]( Tlv &node ) {
 		switch( n )
 		{
 		case 0:
@@ -807,14 +799,13 @@ TEST(TlvBuild, TraverseBfsPartial)
 			break;
 		case 5:
 			CHECK_EQUAL( 0xA4, node.tag().value() );
-			return false;
+			return Tlv::Break;
 		default:
 			FAIL( "Unexpected call" );
 		}
 		n++;
-		return true;
+		return Tlv::Continue;
 	} );
-	CHECK_EQUAL( false, ret );
 	CHECK_EQUAL( 5, n );
 }
 
