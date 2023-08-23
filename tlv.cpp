@@ -532,27 +532,27 @@ Tlv::operator bool() const
 	return !empty();
 }
 
-Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, unsigned depth )
+Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, int depth )
 {
 	Tlv tlv;
 	s = tlv.parse( data, size, depth );
 	return tlv;
 }
 
-Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, unsigned depth )
+Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, int depth )
 {
 	Tlv root;
 	s = root.parse_all( data, size, depth );
 	return root;
 }
 
-Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, unsigned depth )
+Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, int depth )
 {
 	reset();
 	return _parse_one( *this, data, data + size, data, depth );
 }
 
-Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, unsigned depth)
+Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, int depth )
 {
 	reset();
 	return _parse( *this, data, data + size, data, depth );

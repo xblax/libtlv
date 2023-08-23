@@ -207,6 +207,13 @@ public:
 	bool operator==( const Tlv& ) const;
 	bool operator!=( const Tlv& ) const;
 
+	// TODO: adopt depth option also for deep searches / removal
+	enum Depth : int
+	{
+		DirectChildren = 1,
+		Deep = std::numeric_limits<int>::max()
+	};
+
 	/**
 	 * Parse raw data into TLV
 	 * @param[in] data  - input buffer
@@ -216,7 +223,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse( const unsigned char *data, const size_t size, Status &s, unsigned depth = 1 );
+	static Tlv parse( const unsigned char *data, const size_t size, Status &s, int depth = Deep );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -227,7 +234,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s, unsigned depth = 1 );
+	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s, int depth = Deep );
 
 	/**
 	 * Parse raw data into current TLV object
@@ -237,7 +244,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return operation status
 	 */
-	Status parse( const unsigned char *data, const size_t size, unsigned depth = 1 );
+	Status parse( const unsigned char *data, const size_t size, int depth = Deep );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -247,7 +254,9 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return opreation status
 	 */
-	Status parse_all( const unsigned char *data, const size_t size, unsigned depth = 1 );
+	Status parse_all( const unsigned char *data, const size_t size, int depth = Deep );
+
+	//Status expand( unsigned depth = 1 );
 
 	/**
 	 * Build tree into byte sequence
@@ -398,13 +407,6 @@ public:
 	 * Callback must return one of defined TraversalActions.
 	 */
 	void bfs( std::function<TraversalAction(Tlv&)> ) const;
-
-	// TODO implement level option for deep searches / removal
-	enum Depth : int
-	{
-		DirectChildren = 0,
-		Deep = std::numeric_limits<int>::max()
-	};
 
 	/**
 	 * Find one child node with matching tag. If none is found an empty node is returned.

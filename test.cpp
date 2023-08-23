@@ -1105,7 +1105,7 @@ TEST(TlvParse, ThreeByteTag)
 {
 	auto v = unhexify( "BF8101021234" );
 	Tlv::Status s;
-	auto t = Tlv::parse( v.data(), v.size(), s );
+	auto t = Tlv::parse( v.data(), v.size(), s, 1 );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 6, s.parsed_len() );
 	CHECK_EQUAL( 0xBF8101, t.tag().value() );
@@ -1118,7 +1118,7 @@ TEST(TlvParse, FourByteTag)
 {
 	auto v = unhexify( "BF81FF01021234" );
 	Tlv::Status s;
-	auto t = Tlv::parse( v.data(), v.size(), s );
+	auto t = Tlv::parse( v.data(), v.size(), s, 1 );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 7, s.parsed_len() );
 	CHECK_EQUAL( 0xBF81FF01, t.tag().value() );
@@ -1131,7 +1131,7 @@ TEST(TlvParse, FiveByteTag)
 {
 	auto v = unhexify( "BF81FF8301021234" );
 	Tlv::Status s;
-	auto t = Tlv::parse( v.data(), v.size(), s );
+	auto t = Tlv::parse( v.data(), v.size(), s, 1 );
 	CHECK_FALSE( s.ok() );
 }
 
@@ -1218,7 +1218,7 @@ TEST(TlvParse, NestedTags)
 	s.reset();
 
 	// depth = 1
-	tags = Tlv::parse_all( v.data(), v.size(), s );
+	tags = Tlv::parse_all( v.data(), v.size(), s, 1 );
 	CHECK( s.ok() );
 	CHECK_EQUAL( 16, s.parsed_len() );
 	CHECK_EQUAL( 2, tags.num_children() );
