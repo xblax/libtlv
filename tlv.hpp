@@ -377,7 +377,7 @@ public:
 	void set_tag( const Tag& tag );
 
 	/***********
-	 * Traversal
+	 * Traversal & Search
 	 ***********/
 
 	enum TraversalAction
@@ -398,6 +398,31 @@ public:
 	 * Callback must return one of defined TraversalActions.
 	 */
 	void bfs( std::function<TraversalAction(Tlv&)> ) const;
+
+	// TODO implement level option for deep searches / removal
+	enum Depth : int
+	{
+		DirectChildren = 0,
+		Deep = std::numeric_limits<int>::max()
+	};
+
+	/**
+	 * Find one child node with matching tag. If none is found an empty node is returned.
+	 * Only direct children are considered.
+	 */
+	Tlv find_child( const Tag tag );
+
+	/**
+	 * Find all child nodes with matching tag. If none are found an empty vector is returned.
+	 * Only direct children are considered.
+	 */
+	std::vector<Tlv> find_children( const Tag tag );
+
+	/**
+	 * Remove all child nodes witch matching tag. The number of removed children is returned.
+	 * Only direct children are considered.
+	 */
+	size_t remove_children( const Tag tag );
 
 	/***********
 	 * Data Modifiers

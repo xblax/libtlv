@@ -889,6 +889,46 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 	}
 }
 
+Tlv Tlv::find_child( const Tag tag )
+{
+	for( auto& child : data_->children )
+	{
+		if( child.tag() == tag )
+		{
+			return child;
+		}
+	}
+	return Tlv();
+}
+
+std::vector<Tlv> Tlv::find_children( const Tag tag )
+{
+	std::vector<Tlv> matches;
+	for( auto& child : data_->children )
+	{
+		if( child.tag() == tag )
+		{
+			matches.push_back( child );
+		}
+	}
+	return matches;
+}
+
+size_t Tlv::remove_children( const Tag tag )
+{
+	size_t num = 0;
+	for( auto it = data_->children.begin(); it != data_->children.end(); ++it )
+	{
+		if ( it->tag() == tag )
+		{
+			it->data_->parent = nullptr;
+			it = it->data_->children.erase( it );
+			num++;
+		}
+	}
+	return num;
+}
+
 // Modifiers
 
 void Tlv::set_parent( Tlv &parent )
