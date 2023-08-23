@@ -256,7 +256,11 @@ public:
 	 */
 	Status parse_all( const unsigned char *data, const size_t size, int depth = Deep );
 
-	//Status expand( unsigned depth = 1 );
+	/**
+	 * Parses the value of node into a subtree of TLV nodes.
+	 * If parsing is succssfull, value is removed and children are assigned to this node.
+	 */
+	Status expand( int depth = Deep );
 
 	/**
 	 * Build tree into byte sequence

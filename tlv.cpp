@@ -558,6 +558,29 @@ Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, int dep
 	return _parse( *this, data, data + size, data, depth );
 }
 
+Tlv::Status Tlv::expand( int depth )
+{
+	Status s;
+	if( data_->value.size() > 0 )
+	{
+		s = _parse( *this, data_->value.data(), data_->value.data() + data_->value.size() , &data_->value.front(), depth );
+
+		if( s )
+		{
+			data_->value.clear();
+		}
+		else
+		{
+			data_->children.clear();
+		}
+
+	} else {
+		s = Status( Status::BadArgument, 0, "Node has no value" );
+	}
+
+	return s;
+}
+
 std::vector<unsigned char> Tlv::dump() const
 {
 	struct BuildStackFrame
