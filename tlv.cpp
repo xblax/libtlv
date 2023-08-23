@@ -4,6 +4,7 @@
 #include <stack>
 #include <functional>
 #include <algorithm>
+#include <cassert>
 #include <tlv.hpp>
 
 
@@ -468,10 +469,16 @@ Tlv::Tlv( const Tag tag, uint64_t i ) :
 	build_int_value<int64_t>( data_->value, i );
 }
 
-Tlv::Tlv( const Tag tag, const Tlv &child ) :
+Tlv::Tlv( const Tag tag, Tlv &child ) :
 	Tlv( tag )
 {
 	push_back( child );
+}
+
+Tlv::Tlv(const Tag tag, Tlv&& child ) :
+	Tlv( tag )
+{
+	push_back( std::move(child) );
 }
 
 Tlv::Tlv( const Tlv &rhs ) :
@@ -884,46 +891,50 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 
 // Modifiers
 
-void Tlv::set_parent( const Tlv &parent )
+void Tlv::set_parent( Tlv &parent )
 {
-	data_->parent = parent.data_.get();
-	if ( data_->parent )
-	{
-		data_->parent->value.clear();
-		bool found = false;
-		for( auto it = data_->parent->children.begin(); it != data_->parent->children.end(); ++it )
-		{
-			if ( it->data_.get() == data_.get() )
-			{
-				found = true;
-				break;
-			}
-		}
-		if ( !found )
-		{
-			data_->parent->children.push_back( *this );
-		}
-	}
+	parent.push_back( *this );
 }
 
-void Tlv::push_front( const Tlv &child )
+void Tlv::push_front( Tlv &child )
 {
 	data_->value.clear();
+	child.detach();
+	child.data_->parent = data_.get();
 	data_->children.insert( data_->children.begin(), child );
-	child.data_->parent = data_.get();
 }
 
-void Tlv::push_back( const Tlv &child )
+void Tlv::push_front( Tlv&& child )
 {
 	data_->value.clear();
-	data_->children.push_back( child );
+	child.detach();
 	child.data_->parent = data_.get();
+	data_->children.insert( data_->children.begin(), std::move( child ) );
+}
+
+void Tlv::push_back( Tlv& child )
+{
+	data_->value.clear();
+	child.detach();
+	child.data_->parent = data_.get();
+	data_->children.push_back( child );
+}
+
+void Tlv::push_back( Tlv&& child )
+{
+	data_->value.clear();
+	child.detach();
+	child.data_->parent = data_.get();
+	data_->children.push_back( std::move( child) );
 }
 
 void Tlv::pop_front()
 {
 	if ( !data_->children.empty() )
 	{
+		assert( data_->children.front().data_->parent == data_.get() );
+		// unset parent and remove from children
+		data_->children.front().data_->parent = nullptr;
 		data_->children.erase( data_->children.begin() );
 	}
 }
@@ -932,6 +943,9 @@ void Tlv::pop_back()
 {
 	if ( !data_->children.empty() )
 	{
+		assert( data_->children.back().data_->parent == data_.get() );
+		// unset parent and remove from children
+		data_->children.back().data_->parent = nullptr;
 		data_->children.pop_back();
 	}
 }
@@ -945,11 +959,13 @@ void Tlv::detach()
 			if ( it->data_.get() == data_.get() )
 			{
 				data_->parent->children.erase( it );
-				break;
+				data_->parent = nullptr;
+				return;
 			}
 		}
+		/* Unreachable, because if this node has a parent, it must be child of it's parent. */
+		assert( false );
 	}
-	data_->parent = nullptr;
 }
 
 void Tlv::erase( const Tag tag )

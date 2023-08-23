@@ -812,10 +812,61 @@ TEST(TlvBuild, TraverseBfsPartial)
 TEST(TlvBuild, SetParent)
 {
 	Tlv root( 0xAA, 10 );
+	CHECK( root.has_value() );
 	Tlv node( 0xA1, "test" );
 	node.set_parent( root );
+	CHECK_FALSE( root.has_value() );
+	CHECK( root.has_children() );
+	CHECK( root.children().back().identical( node ) );
 	STRCMP_EQUAL( "AA06A10474657374", hexify( root.dump() ).c_str() );
 }
+
+TEST(TlvBuild, DetachParent)
+{
+	Tlv root( 0xAA );
+	Tlv child( 0xD1, "test" );
+
+	root.push_back(child);
+	CHECK(root.has_children());
+	CHECK(child.has_parent());
+
+	child.detach();
+	CHECK_FALSE(root.has_children());
+	CHECK_FALSE(child.has_parent());
+}
+
+TEST(TlvBuild, ReParent)
+{
+	Tlv root( 0xF1 );
+	Tlv root2( 0xF2 );
+
+	Tlv child1( 0xD1 );
+	Tlv child2( 0xD1 );
+	Tlv child3( 0xD1 );
+	root.push_back( child1 );
+	root.push_back( child1 );
+	CHECK_EQUAL( 1, root.num_children() );
+	root.push_back( child2 );
+	root.push_back( child3 );
+	CHECK_EQUAL( 3, root.num_children() );
+
+	// children move from root1 to root2
+	root2.push_front( child1 );
+	root2.push_back( child2 );
+	child3.set_parent( root2 );
+	CHECK_EQUAL( 3, root2.num_children() );
+	CHECK_EQUAL( 0, root.num_children() );
+
+	// remove children
+	CHECK( child3.has_parent() );
+	root2.pop_back();
+	CHECK_FALSE( child3.has_parent() );
+	CHECK( child1.has_parent() );
+	root2.pop_front();
+	CHECK_FALSE( child1.has_parent() );
+	CHECK_EQUAL( 1, root2.num_children() );
+}
+
 
 TEST(TlvBuild, TraverseDetach)
 {
@@ -930,14 +981,14 @@ TEST(TlvBuild, EmptyTree)
 	CHECK_EQUAL( 0, root.dump().size() );
 }
 
-TEST(TlvBuild, EmptyRoot)
+TEST(TlvBuild, RootWithoutTag)
 {
 	Tlv root; // has no tag
 	root.push_back( Tlv( 0xD1, 0xFF ) );
 	root.push_back( Tlv( 0xD2, 0xFF ) );
 	CHECK_TRUE( root.tag().empty() );
-	// TODO CHECK_FALSE( root.empty() ); - root should not be empty when having children
-	CHECK_EQUAL( "D101FFD201FF", hexify( root.dump()) );
+	CHECK_FALSE( root.empty() );
+	STRCMP_EQUAL( "D101FFD201FF", hexify( root.dump() ).c_str() );
 }
 
 TEST(TlvBuild, CopyConstructor)

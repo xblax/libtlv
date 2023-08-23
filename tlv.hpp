@@ -195,7 +195,9 @@ public:
 	explicit Tlv( const Tag, uint16_t );
 	explicit Tlv( const Tag, uint32_t );
 	explicit Tlv( const Tag, uint64_t );
-	explicit Tlv( const Tag, const Tlv& );
+	explicit Tlv( const Tag, Tlv& child );
+	explicit Tlv( const Tag, Tlv&& child );
+
 	Tlv( const Tlv& );
 	Tlv( Tlv&& );
 	~Tlv();
@@ -404,17 +406,19 @@ public:
 	/**
 	 * Set parent
 	 */
-	void set_parent( const Tlv& parent );
+	void set_parent( Tlv& parent );
 
 	/**
 	 * Add new item to the beginning of children list
 	 */
-	void push_front( const Tlv& child );
+	void push_front( Tlv& child );
+	void push_front( Tlv&& child );
 
 	/**
 	 * Add new item to the end of children list
 	 */
-	void push_back( const Tlv& child );
+	void push_back( Tlv& child );
+	void push_back( Tlv&& child );
 
 	/**
 	 * Remove first child node
