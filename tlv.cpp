@@ -107,6 +107,21 @@ Tlv::Tag Tlv::Tag::build( UniversalTagType type, bool constructed )
 	return build( Class::Universal, constructed, (uint32_t)type );
 }
 
+Tlv::Tag::Tag( const char* null_terminated_tag ) :
+	_value( 0 )
+{
+	for( unsigned i = 0; null_terminated_tag[i] != 0; ++i )
+	{
+		if( i >= sizeof(uint32_t) )
+		{
+			_value = 0;
+			return;
+		}
+		_value <<= 8;
+		_value |= null_terminated_tag[i];
+	}
+}
+
 size_t Tlv::Tag::size() const
 {
 	if ( _value == empty_tag_value )

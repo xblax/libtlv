@@ -130,6 +130,7 @@ public:
 
 		Tag() : _value( empty_tag_value ) {}
 		Tag( uint32_t value ) : _value ( value ) {}
+		Tag( const char* null_terminated_tag );
 		Tag( const Tag& ) = default;
 
 		Tag& operator=( const Tag& ) = default;

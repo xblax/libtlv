@@ -189,7 +189,7 @@ TEST(TlvTag, TagBuild)
 	CHECK( tag.empty() );
 }
 
-TEST(TlvTag, UniversalTagBuild)
+TEST( TlvTag, UniversalTagBuild)
 {
 	auto tag = Tlv::Tag::build( Tlv::Tag::UniversalTagType::EndOfContent, false );
 	CHECK_EQUAL( 0, tag.value() );
@@ -200,6 +200,18 @@ TEST(TlvTag, UniversalTagBuild)
 	CHECK_EQUAL( 0x01, tag.value() );
 	CHECK_EQUAL( 1, tag.size() );
 	CHECK_FALSE( tag.empty() );
+}
+
+TEST( TlvTag, TagFromConstChar )
+{
+	Tlv::Tag tag( "0x123" );
+	CHECK_EQUAL( 0x123, tag.value() );
+	tag = Tlv::Tag( "123" );
+	CHECK_EQUAL( 123, tag.value() );
+	tag = Tlv::Tag( "-5" );
+	CHECK( tag.empty() );
+	tag = Tlv::Tag( "0xFFFFFFFFF" );  // too big
+	CHECK( tag.empty() );
 }
 
 /*
