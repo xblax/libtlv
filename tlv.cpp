@@ -8,9 +8,9 @@
 #include <tlv.hpp>
 
 
-std::vector<unsigned char> unhexify( const std::string &str )
+std::vector<uint8_t> unhexify( const std::string &str )
 {
-	static unsigned char nibble[] = {
+	static uint8_t nibble[] = {
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,0,0,0,0,0,0,
 		0,11,12,13,14,15,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -20,14 +20,14 @@ std::vector<unsigned char> unhexify( const std::string &str )
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
-	std::vector<unsigned char> ret( ( str.size() + 1 ) / 2, 0 );
+	std::vector<uint8_t> ret( ( str.size() + 1 ) / 2, 0 );
 	if ( !str.empty() )
 	{
 		bool flip_flap = str.size() % 2;
 		int offset = flip_flap;
 		for( size_t i = 0; i < str.size(); i++ )
 		{
-			unsigned char ch = nibble[static_cast<uint8_t>( str[i] )];
+			uint8_t ch = nibble[static_cast<uint8_t>( str[i] )];
 			if ( !ch )
 			{
 				ret.clear();
@@ -41,7 +41,7 @@ std::vector<unsigned char> unhexify( const std::string &str )
 	return ret;
 }
 
-std::string hexify( const std::vector<unsigned char> &data, bool lower_case )
+std::string hexify( const std::vector<uint8_t> &data, bool lower_case )
 {
 	static char nibble_lc[] = {
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -73,11 +73,11 @@ static uint32_t msb( uint32_t value )
 Tlv::Tag Tlv::Tag::build( Tlv::Tag::Class cls, bool constructed, uint32_t tag_number )
 {
 	// See X.690 BER tar encoding
-	static const unsigned char next_byte = 0x80;
-	static const unsigned char first_byte_bits = 0x1F;
-	static const unsigned char paytload_bits = 0x7F;
-	static const unsigned char constructed_tag = 0x20;
-	static const unsigned char primitive_tag = 0x00;
+	static const uint8_t next_byte = 0x80;
+	static const uint8_t first_byte_bits = 0x1F;
+	static const uint8_t paytload_bits = 0x7F;
+	static const uint8_t constructed_tag = 0x20;
+	static const uint8_t primitive_tag = 0x00;
 	Tlv::Tag ret; // invalid tag
 	if( tag_number <= max_tag_number ) // must fit in 4 bytes
 	{
@@ -380,7 +380,7 @@ Tlv::Tlv( const Tag tag, const Value &&data ) :
 	data_->value = std::move( data );
 }
 
-Tlv::Tlv( const Tag tag, const unsigned char *data, size_t size ) :
+Tlv::Tlv( const Tag tag, const uint8_t *data, size_t size ) :
 	Tlv( tag )
 {
 	data_->value = Value( data, data + size );
@@ -405,7 +405,7 @@ void build_int_value( Tlv::Value &buf, T value )
 	} else {
 		for( int i = sizeof( T ) - 1; i >= 0; i-- )
 		{
-			unsigned char b = ( value >> ( i * 8 ) ) & 0xFF;
+			uint8_t b = ( value >> ( i * 8 ) ) & 0xFF;
 			if ( b == 0 )
 			{
 				continue;
@@ -418,7 +418,7 @@ void build_int_value( Tlv::Value &buf, T value )
 Tlv::Tlv( const Tag tag, bool b ) :
 	Tlv( tag )
 {
-	data_->value.push_back( (unsigned char)b );
+	data_->value.push_back( (uint8_t)b );
 }
 
 Tlv::Tlv( const Tag tag, int8_t i ) :
@@ -532,27 +532,27 @@ Tlv::operator bool() const
 	return !empty();
 }
 
-Tlv Tlv::parse( const unsigned char *data, const size_t size, Status &s, int depth )
+Tlv Tlv::parse( const uint8_t *data, const size_t size, Status &s, int depth )
 {
 	Tlv tlv;
 	s = tlv.parse( data, size, depth );
 	return tlv;
 }
 
-Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, int depth )
+Tlv Tlv::parse_all( const uint8_t *data, const size_t size, Status &s, int depth )
 {
 	Tlv root;
 	s = root.parse_all( data, size, depth );
 	return root;
 }
 
-Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, int depth )
+Tlv::Status Tlv::parse( const uint8_t *data, const size_t size, int depth )
 {
 	reset();
 	return _parse_one( *this, data, data + size, data, depth );
 }
 
-Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, int depth )
+Tlv::Status Tlv::parse_all(const uint8_t* data, const size_t size, int depth )
 {
 	reset();
 	return _parse( *this, data, data + size, data, depth );
@@ -581,7 +581,7 @@ Tlv::Status Tlv::expand( int depth )
 	return s;
 }
 
-std::vector<unsigned char> Tlv::dump() const
+std::vector<uint8_t> Tlv::dump() const
 {
 	struct BuildStackFrame
 	{
@@ -674,7 +674,7 @@ std::vector<unsigned char> Tlv::dump() const
 			} else {
 				// Definite long form
 				int len_bytes = 4 - __builtin_clz( len ) / 8;
-				out.push_back( (unsigned char)( 0x80 | len_bytes ) );
+				out.push_back( (uint8_t)( 0x80 | len_bytes ) );
 				for( int i = len_bytes - 1; i >= 0; i-- )
 				{
 					out.push_back( ( len >> ( i * 8 ) ) & 0xFF );

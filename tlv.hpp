@@ -8,8 +8,8 @@
 #include <limits>
 #include <iterator>
 
-std::vector<unsigned char> unhexify( const std::string &str );
-std::string hexify( const std::vector<unsigned char> &data, bool lower_case = false );
+std::vector<uint8_t> unhexify( const std::string &str );
+std::string hexify( const std::vector<uint8_t> &data, bool lower_case = false );
 
 
 class Tlv
@@ -183,7 +183,7 @@ public:
 	explicit Tlv( const Tag );
 	explicit Tlv( const Tag, const Value& );
 	explicit Tlv( const Tag, const Value&& );
-	explicit Tlv( const Tag, const unsigned char*, const size_t );
+	explicit Tlv( const Tag, const uint8_t*, const size_t );
 	explicit Tlv( const Tag, const char* );
 	explicit Tlv( const Tag, const std::string& );
 	explicit Tlv( const Tag, bool );
@@ -223,7 +223,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse( const unsigned char *data, const size_t size, Status &s, int depth = Deep );
+	static Tlv parse( const uint8_t *data, const size_t size, Status &s, int depth = Deep );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -234,7 +234,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return Parsed TLV tree
 	 */
-	static Tlv parse_all( const unsigned char *data, const size_t size, Status &s, int depth = Deep );
+	static Tlv parse_all( const uint8_t *data, const size_t size, Status &s, int depth = Deep );
 
 	/**
 	 * Parse raw data into current TLV object
@@ -244,7 +244,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return operation status
 	 */
-	Status parse( const unsigned char *data, const size_t size, int depth = Deep );
+	Status parse( const uint8_t *data, const size_t size, int depth = Deep );
 
 	/**
 	 * Parse raw data into set of TLV nodes (if tags come one after another)
@@ -254,7 +254,7 @@ public:
 	 * @param[in] depth - parse sub-items recursively up to specified depth
 	 * @return opreation status
 	 */
-	Status parse_all( const unsigned char *data, const size_t size, int depth = Deep );
+	Status parse_all( const uint8_t *data, const size_t size, int depth = Deep );
 
 	/**
 	 * Parses the value of node into a subtree of TLV nodes.
@@ -265,7 +265,7 @@ public:
 	/**
 	 * Build tree into byte sequence
 	 */
-	std::vector<unsigned char> dump() const;
+	std::vector<uint8_t> dump() const;
 
 	/***********
 	 * Capacity

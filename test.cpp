@@ -226,7 +226,7 @@ TEST(TlvBuild, NoValueCtor)
 
 TEST(TlvBuild, TagValueCtor)
 {
-	unsigned char *data = (unsigned char*)"test";
+	uint8_t *data = (uint8_t*)"test";
 	Tlv t( 0x1F81, Tlv::Value( data, data + 5 ) );
 	CHECK_FALSE( t.empty() );
 	CHECK( t.has_tag() );
@@ -239,7 +239,7 @@ TEST(TlvBuild, TagValueCtor)
 
 TEST(TlvBuild, TagBufCtor)
 {
-	Tlv t( 0x1F81, (const unsigned char*)"test", 5 );
+	Tlv t( 0x1F81, (const uint8_t*)"test", 5 );
 	CHECK_FALSE( t.empty() );
 	CHECK( t.has_tag() );
 	CHECK_EQUAL( 0x1F81, t.tag().value() );
@@ -264,7 +264,7 @@ TEST(TlvBuild, BuildTree1)
 	CHECK_EQUAL( 0x92, root.back().tag().value() );
 	root.push_back( Tlv( 0xAA ) );
 	CHECK_EQUAL( 0xAA, root.back().tag().value() );
-	root.back().push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
+	root.back().push_back( Tlv( 0x8A, (const uint8_t*)"test", 4 ) );
 	CHECK_EQUAL( 0x8A, root.back().back().tag().value() );
 	root.push_back( Tlv( 0x93, 0xABBCCDD ) );
 	CHECK_EQUAL( 0x93, root.back().tag().value() );
@@ -279,7 +279,7 @@ TEST(TlvBuild, BuildTree2)
 	 * 			AA
 	 * 				8A	test
 	 */
-	Tlv _8a( 0x8A, (const unsigned char*)"test", 4 );
+	Tlv _8a( 0x8A, (const uint8_t*)"test", 4 );
 	Tlv _aa( 0xAA, std::move( _8a ) );
 	Tlv _92( 0x92, std::move( _aa ) );
 	Tlv root( 0x9F8501, std::move( _92 ) );
@@ -295,7 +295,7 @@ TEST(TlvBuild, BuildTree3)
 	 * 		8A	test
 	 */
 	Tlv _92( 0x92, 0x123 );
-	Tlv _8a( 0x8A, (const unsigned char*)"test", 4 );
+	Tlv _8a( 0x8A, (const uint8_t*)"test", 4 );
 	Tlv root( 0xBF800001 );
 	root.push_back( _92 );
 	root.push_back( Tlv( 0x93 ) );
@@ -308,7 +308,7 @@ TEST(TlvBuild, BuildTree4)
 	/*
 	 * 9F8501	test
 	 */
-	Tlv root( 0x9F8501, (const unsigned char*)"test", 4 );
+	Tlv root( 0x9F8501, (const uint8_t*)"test", 4 );
 	STRCMP_EQUAL( "9F85010474657374", hexify( root.dump() ).c_str() );
 }
 
@@ -326,7 +326,7 @@ TEST(TlvBuild, BuildTreeList)
 	tree.push_back( Tlv( 0x45, 1 ) );
 	tree.push_back( Tlv( 0x9F8501 ) );
 	tree.back().push_back( Tlv( 0xAA ) );
-	tree.back().back().push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
+	tree.back().back().push_back( Tlv( 0x8A, (const uint8_t*)"test", 4 ) );
 	tree.back().push_back( Tlv( 0x93, 0xABBCCDD ) );
 	tree.push_back( Tlv( 0x5F41, 0x345 ) );
 	STRCMP_EQUAL( "4501019F85010EAA068A047465737493040ABBCCDD5F41020345", hexify( tree.dump() ).c_str() );
@@ -349,7 +349,7 @@ TEST(TlvBuild, Graft1)
 		tree.back().push_back( Tlv( 0x93, 0xABBCCDD ) );
 
 		Tlv branch( 0xAA );
-		branch.push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
+		branch.push_back( Tlv( 0x8A, (const uint8_t*)"test", 4 ) );
 
 		tree.back().push_front( branch );
 		tree.push_back( Tlv( 0x5F41, 0x345 ) );
@@ -412,7 +412,7 @@ TEST(TlvBuild, Graft2)
 		tree.back().push_back( Tlv( 0x93, 0xABBCCDD ) );
 
 		Tlv branch( 0xAA );
-		branch.push_back( Tlv( 0x8A, (const unsigned char*)"test", 4 ) );
+		branch.push_back( Tlv( 0x8A, (const uint8_t*)"test", 4 ) );
 
 		tree.back().push_back( branch );
 		tree.push_back( Tlv( 0x5F41, 0x345 ) );
@@ -1400,7 +1400,7 @@ TEST(TlvParse, NestedTags2)
 TEST(TlvParse, Empty)
 {
 	Tlv::Status s;
-	std::vector<unsigned char> buf;
+	std::vector<uint8_t> buf;
 	auto tlv = Tlv::parse_all( buf.data(), buf.size(), s );
 	CHECK( s.ok() );
 	CHECK( tlv.empty() );
