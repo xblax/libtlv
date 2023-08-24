@@ -927,7 +927,7 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 	}
 }
 
-Tlv Tlv::find_child( const Tag tag )
+Tlv Tlv::find( const Tag tag )
 {
 	for( auto& child : data_->children )
 	{
@@ -939,7 +939,7 @@ Tlv Tlv::find_child( const Tag tag )
 	return Tlv();
 }
 
-std::vector<Tlv> Tlv::find_children( const Tag tag )
+std::vector<Tlv> Tlv::find_all( const Tag tag )
 {
 	std::vector<Tlv> matches;
 	for( auto& child : data_->children )
@@ -952,7 +952,7 @@ std::vector<Tlv> Tlv::find_children( const Tag tag )
 	return matches;
 }
 
-size_t Tlv::remove_children( const Tag tag )
+size_t Tlv::remove( const Tag tag )
 {
 	size_t num = 0;
 	for( auto it = data_->children.begin(); it != data_->children.end(); ++it )

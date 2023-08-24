@@ -417,19 +417,19 @@ public:
 	 * Find one child node with matching tag. If none is found an empty node is returned.
 	 * Only direct children are considered.
 	 */
-	Tlv find_child( const Tag tag );
+	Tlv find( const Tag tag );
 
 	/**
 	 * Find all child nodes with matching tag. If none are found an empty vector is returned.
 	 * Only direct children are considered.
 	 */
-	std::vector<Tlv> find_children( const Tag tag );
+	std::vector<Tlv> find_all( const Tag tag );
 
 	/**
 	 * Remove all child nodes witch matching tag. The number of removed children is returned.
 	 * Only direct children are considered.
 	 */
-	size_t remove_children( const Tag tag );
+	size_t remove( const Tag tag );
 
 	/***********
 	 * Data Modifiers
