@@ -201,8 +201,6 @@ public:
 	bool operator!=( const Tlv& ) const;
 	operator bool() const;
 
-	bool identical( const Tlv &other ) const;
-
 	/**
 	 * Parse raw data into TLV
 	 * @param[in] data  - input buffer
@@ -391,7 +389,7 @@ public:
 	void bfs( std::function<TraversalAction(Tlv&)> ) const;
 
 	/***********
-	 * Modifiers
+	 * Data Modifiers
 	 ***********/
 
 	/**
@@ -429,15 +427,24 @@ public:
 	 */
 	void erase( const Tag tag );
 
-	/**
-	 * Swar internally referenced nodes.
-	 */
-	void swap( Tlv& );
+	/***********
+	 * Tlv Pointer Management
+	 ***********/
 
 	/**
-	 * Unset node tag and data
+	 * Swap internally referenced tree nodes.
 	 */
-	void clear();
+	void swap( Tlv& other );
+
+	/**
+	 * True if other Tlv object internally references the same tree node.
+	 */
+	bool identical( const Tlv &other ) const;
+
+	/**
+	 * Replace internally referenced node with empty node.
+	 */
+	void reset();
 
 private:
 	struct Data;

@@ -541,13 +541,13 @@ Tlv Tlv::parse_all( const unsigned char *data, const size_t size, Status &s, uns
 
 Tlv::Status Tlv::parse( const unsigned char *data, const size_t size, unsigned depth )
 {
-	clear();
+	reset();
 	return _parse_one( *this, data, data + size, data, depth );
 }
 
 Tlv::Status Tlv::parse_all(const unsigned char* data, const size_t size, unsigned depth)
 {
-	clear();
+	reset();
 	return _parse( *this, data, data + size, data, depth );
 }
 
@@ -963,14 +963,14 @@ void Tlv::erase( const Tag tag )
 	}
 }
 
-void Tlv::swap( Tlv &rhs )
+void Tlv::swap( Tlv &other )
 {
 	std::shared_ptr<Data> tmp = data_;
-	data_ = rhs.data_;
-	rhs.data_ = tmp;
+	data_ = other.data_;
+	other.data_ = tmp;
 }
 
-void Tlv::clear()
+void Tlv::reset()
 {
 	data_ = std::make_shared<Data>();
 }
