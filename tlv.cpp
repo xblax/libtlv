@@ -892,9 +892,41 @@ void Tlv::dfs( std::function<TraversalAction(Tlv&)> callback ) const
 			case Prune: continue;   // continue, but skip subtree of current node
 			case Continue: ;		// continue traversal
 		}
-
-		// add children of current node to stack - first child must be on top of stack
 		stack.insert( stack.end(), currentNode.data_->children.rbegin(), currentNode.data_->children.rend() );
+	}
+}
+
+void Tlv::dfs( std::function<TraversalAction(Tlv&, int depth)> callback ) const
+{
+	if ( !callback )
+	{
+		return;
+	}
+
+	// track depth of node on stack
+	std::vector<std::pair<Tlv, int>> stack;
+	stack.reserve( 4 );	 // start with a reasonable default size
+	stack.emplace_back(std::make_pair(*this, 0));
+
+	while( !stack.empty() )
+	{
+		auto nodeElement( std::move( stack.back() ) );
+		stack.pop_back();
+
+		// visit node
+		auto ret = callback( nodeElement.first, nodeElement.second );
+		switch( ret )
+		{
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
+		}
+
+		auto& children = nodeElement.first.data_->children;
+		for( auto it = children.rbegin(); it != children.rend(); ++it )
+		{
+			stack.emplace_back(*it, nodeElement.second +1 );
+		}
 	}
 }
 
@@ -926,6 +958,40 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&)> callback ) const
 		queue.insert( queue.end(), currentNode.data_->children.begin(), currentNode.data_->children.end() );
 	}
 }
+
+void Tlv::bfs( std::function<TraversalAction(Tlv&, int depth)> callback ) const
+{
+	if ( !callback )
+	{
+		return;
+	}
+
+	// track depth of node in queue
+	std::deque<std::pair<Tlv, int>> queue;
+	queue.emplace_back(std::make_pair(*this, 0));
+
+	while( !queue.empty() )
+	{
+		auto nodeElement( std::move( queue.back() ) );
+		queue.pop_back();
+
+		// visit node
+		auto ret = callback( nodeElement.first, nodeElement.second );
+		switch( ret )
+		{
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
+		}
+
+		auto& children = nodeElement.first.data_->children;
+		for( auto it = children.rbegin(); it != children.rend(); ++it )
+		{
+			queue.emplace_back(*it, nodeElement.second +1 );
+		}
+	}
+}
+
 
 Tlv Tlv::find( const Tag tag )
 {
@@ -1095,6 +1161,36 @@ inline void Tlv::_dfs_unsafe( T callback ) const
 		for( int r = children.size() - 1; r >= 0; r-- )
 		{
 			stack.push_back(&children[r]);
+		}
+	}
+}
+
+template< typename T >
+inline void Tlv::_dfs_unsafe_depth( T callback ) const
+{
+	std::vector<std::pair<const Tlv*, int>> stack;
+	stack.reserve( 4 );				// start with a reasonable default size
+	stack.emplace_back( this, 0 );
+
+	while( !stack.empty() )
+	{
+		auto currentElement = stack.back();
+		stack.pop_back();
+
+		auto ret = callback( *(currentElement.first), currentElement.second );
+
+		switch( ret )
+		{
+			case Break: return;		// stop here
+			case Prune: continue;   // continue, but skip subtree of current node
+			case Continue: ;		// continue traversal
+		}
+
+		// add children of current node to stack - first child must be on top of stack
+		auto &children = currentElement.first->data_->children;
+		for( int r = children.size() - 1; r >= 0; r-- )
+		{
+			stack.emplace_back(&children[r], currentElement.second + 1);
 		}
 	}
 }

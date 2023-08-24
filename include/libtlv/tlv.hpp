@@ -406,12 +406,14 @@ public:
 	 * Callback must return one of defined TraversalActions.
 	 */
 	void dfs( std::function<TraversalAction(Tlv&)> ) const;
+	void dfs( std::function<TraversalAction(Tlv&, int depth)> ) const;
 
 	/**
 	 * Breadth first search tree traversal.
 	 * Callback must return one of defined TraversalActions.
 	 */
 	void bfs( std::function<TraversalAction(Tlv&)> ) const;
+	void bfs( std::function<TraversalAction(Tlv&, int depth)> ) const;
 
 	/**
 	 * Find one child node with matching tag. If none is found an empty node is returned.
@@ -501,6 +503,8 @@ private:
 
 	template< typename T >
 	inline void _dfs_unsafe( T callback ) const;
+	template< typename T >
+	inline void _dfs_unsafe_depth( T callback ) const;
 
 	static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
 	static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
