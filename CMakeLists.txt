@@ -21,7 +21,8 @@ add_library(tlv tlv.cpp include/libtlv/tlv.hpp)
 add_library(libtlv::tlv ALIAS tlv)
 target_include_directories(tlv INTERFACE include)
 target_include_directories(tlv PRIVATE include/libtlv)
-target_compile_features(tlv PUBLIC cxx_std_11)
+
+target_compile_features(tlv PUBLIC cxx_std_17)
 target_compile_options(tlv PRIVATE ${LIBTLV_COMPILE_OPTIONS})
 
 # Test target (only when libtlv is master project and CppUTest was found)

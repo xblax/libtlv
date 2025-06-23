@@ -11,7 +11,7 @@ The API and library semantics might change in the future. Use at your own risk.
 2. CMake
 
 ## Build and use
-Library uses C++11 features, so the compiler should support that.<br>
+Library uses C++17 features, so the compiler should support that.<br>
 Build system is CMake. The CMake project provides a static library target for libtlv.a
 
 To use the library, it's recommended to include it as subdirectory into an existing CMake project.
