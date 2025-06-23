@@ -201,15 +201,15 @@ TEST( TlvTag, UniversalTagBuild)
     CHECK_FALSE( tag.empty() );
 }
 
-TEST( TlvTag, TagFromConstChar )
+TEST( TlvTag, TagFromNullTerminatedChar )
 {
-    Tlv::Tag tag( "0x123" );
-    CHECK_EQUAL( 0x123, tag.value() );
+    Tlv::Tag tag( "\x11\x23\xF0" );
+    CHECK_EQUAL( 0x1123F0, tag.value() );
     tag = Tlv::Tag( "123" );
-    CHECK_EQUAL( 123, tag.value() );
-    tag = Tlv::Tag( "-5" );
+    CHECK_EQUAL( 0x313233, tag.value() );
+    tag = Tlv::Tag( "\xFF\x01\x02\x03\x04" );  // too big for tag type
     CHECK( tag.empty() );
-    tag = Tlv::Tag( "0xFFFFFFFFF" );  // too big
+    tag = Tlv::Tag( "" );
     CHECK( tag.empty() );
 }
 

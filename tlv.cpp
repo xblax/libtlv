@@ -117,8 +117,9 @@ Tlv::Tag::Tag( const char* null_terminated_tag ) :
             _value = 0;
             return;
         }
+        const uint8_t byte = static_cast<uint8_t>(null_terminated_tag[i]);
         _value <<= 8;
-        _value |= null_terminated_tag[i];
+        _value |= byte;
     }
 }
 
