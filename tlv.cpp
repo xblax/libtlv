@@ -7,64 +7,73 @@
 #include <cassert>
 #include <tlv.hpp>
 
-
-std::vector<uint8_t> unhexify( const std::string &str )
+namespace LibtlvUtil
 {
-    static uint8_t nibble[] = {
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,0,0,0,0,0,0,
-        0,11,12,13,14,15,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,11,12,13,14,15,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    };
-    std::vector<uint8_t> ret( ( str.size() + 1 ) / 2, 0 );
-    if ( !str.empty() )
+    std::vector<uint8_t> unhexify( std::string_view hexInput, bool throw_ex )
     {
-        bool flip_flap = str.size() % 2;
-        int offset = flip_flap;
-        for( size_t i = 0; i < str.size(); i++ )
+        if( hexInput.size() % 2 != 0 )
         {
-            uint8_t ch = nibble[static_cast<uint8_t>( str[i] )];
-            if ( !ch )
-            {
-                ret.clear();
-                break;
-            }
-            ch--;
-            flip_flap = !flip_flap;
-            ret[( i + offset ) / 2] |= ch << ( flip_flap * 4 );
+            if( throw_ex )
+                throw std::invalid_argument( "Hex Decode: input string must have even number of chars!" );
+            return std::vector<uint8_t>();
         }
-    }
-    return ret;
-}
 
-std::string hexify( const std::vector<uint8_t> &data, bool lower_case )
-{
-    static char nibble_lc[] = {
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-    };
-    static char nibble_uc[] = {
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-    };
-    char *nibble = lower_case ? nibble_lc : nibble_uc;
-    std::string ret;
-    ret.resize( data.size() * 2 );
-    int i = 0;
-    for( const auto &b : data )
+        auto hexChar2Bin = [&](char c)
+        {
+           if( c >= '0' && c <= '9' )
+              return static_cast<uint8_t>(c - '0');
+           else if ( c >= 'A' && c <= 'F' )
+              return static_cast<uint8_t>(c - 'A' + 10 );
+           else if ( c >= 'a' && c <= 'f' )
+              return static_cast<uint8_t>(c - 'a' + 10 );
+
+           throw std::invalid_argument( std::string( "Hex Decode: invalid input char '" ) + c + "'" );
+        };
+
+        std::vector<uint8_t> data;
+        try
+        {
+            data.reserve(hexInput.size()/2 );
+            for( size_t i = 0; i < hexInput.size(); i+=2 )
+            {
+               uint8_t byte  = hexChar2Bin( hexInput.at( i ) ) << 4;
+                       byte += hexChar2Bin( hexInput.at( i+1 ) );
+               data.push_back( byte );
+            }
+        }
+        catch( std::exception &e )
+        {
+            data.clear();
+            if( throw_ex )
+                throw; // rethrow
+        }
+
+        return data;
+    }
+
+    std::string hexify( const std::vector<uint8_t> &data, bool lower_case )
     {
-        ret[i++] = nibble[b >> 4];
-        ret[i++] = nibble[b & 0x0F];
+        const char* characters = lower_case ? "0123456789abcdef" : "0123456789ABCDEF";
+        std::string hexString;
+        hexString.reserve( data.size()*2 );
+
+        for ( const auto &byte : data )
+        {
+          hexString += characters[byte >> 4];
+          hexString += characters[byte & 0x0F];
+        }
+
+        return hexString;
     }
-    return ret;
+
+    // most significant bit
+    static uint32_t msb( uint32_t value )
+    {
+        return value >> ( 8 * ( sizeof(value) - __builtin_clz( value ) / 8 - 1 ) );
+    }
 }
 
-static uint32_t msb( uint32_t value )
-{
-    return value >> ( 8 * ( sizeof(value) - __builtin_clz( value ) / 8 - 1 ) );
-}
+using namespace LibtlvUtil;
 
 /*
  * TlvTag

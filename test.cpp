@@ -2,6 +2,7 @@
 #include <CppUTest/CommandLineTestRunner.h>
 #include <CppUTest/TestHarness.h>
 
+using namespace LibtlvUtil;
 
 int main( int argc, char** argv)
 {
@@ -19,27 +20,28 @@ TEST(TlvMisc, Unhexify)
     CHECK_EQUAL( 0x34, v[1] );
     CHECK_EQUAL( 0xAB, v[2] );
 
+    // invalid size 1
     v = unhexify( "1234A" );
-    CHECK( v.size() == 3 );
-    CHECK_EQUAL( 0x01, v[0] );
-    CHECK_EQUAL( 0x23, v[1] );
-    CHECK_EQUAL( 0x4A, v[2] );
+    CHECK( v.empty() );
+    CHECK_THROWS( std::invalid_argument, unhexify( "1234A", true ) );
 
-    v = unhexify( "f" );
-    CHECK( v.size() == 1 );
-    CHECK_EQUAL( 0x0F, v[0] );
-
+    // invalid size 2
     v = unhexify( "0" );
-    CHECK( v.size() == 1 );
-    CHECK_EQUAL( 0x00, v[0] );
+    CHECK( v.empty() );
+    CHECK_THROWS( std::invalid_argument, unhexify( "0", true ) );
 
+    // invalid input 1
     v = unhexify( "0A\xff" );
     CHECK( v.empty() );
+    CHECK_THROWS( std::invalid_argument, unhexify( "0A\xff" , true ) );
 
-    v = unhexify( "" );
-    CHECK( v.empty() );
-
+    // invalid input 2
     v = unhexify( "test" );
+    CHECK( v.empty() );
+    CHECK_THROWS( std::invalid_argument, unhexify( "test" , true ) );
+
+    // empty input
+    v = unhexify( "", true );
     CHECK( v.empty() );
 }
 

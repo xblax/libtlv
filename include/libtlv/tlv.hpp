@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <list>
 #include <memory>
@@ -8,9 +9,11 @@
 #include <limits>
 #include <iterator>
 
-std::vector<uint8_t> unhexify( const std::string &str );
-std::string hexify( const std::vector<uint8_t> &data, bool lower_case = false );
-
+namespace LibtlvUtil
+{
+    std::vector<uint8_t> unhexify( std::string_view hexInput, bool throw_ex = false );
+    std::string hexify( const std::vector<uint8_t> &data, bool lower_case = false );
+}
 
 class Tlv
 {
