@@ -166,6 +166,23 @@ uint32_t Tlv::Tag::tag_number() const
     return tag;
 }
 
+std::string Tlv::Tag::to_hex_string() const
+{
+    const char* characters = "0123456789ABCDEF";
+    int most_significant_byte = ( sizeof( _value ) - __builtin_clz( _value ) / 8 ) - 1;
+    std::string hex_string;
+    hex_string.reserve( (most_significant_byte + 1) * 2 );
+
+    for( int i = most_significant_byte; i >= 0; i-- )
+    {
+        uint8_t byte = ( _value >> ( i * 8 ) ) & 0xFF;
+        hex_string += characters[byte >> 4];
+        hex_string += characters[byte & 0x0F];
+    }
+
+    return hex_string;
+}
+
 /*
  * Tlv::Data
  */
@@ -716,6 +733,49 @@ std::vector<uint8_t> Tlv::dump() const
         build_tag( output, *el.node->data_, el.size );
     }
 
+    return output;
+}
+
+std::string Tlv::dump_formatted() const
+{
+    std::string output;
+
+    auto is_printable_char = []( uint8_t byte )
+    {
+        // space ' ' 0x20 to tilde '~' 0x7E
+        return byte >= 0x20 && byte <= 0x7E;
+    };
+
+    // skip encoding of root node, if it's just a container for child nodes
+    bool skip_root = !has_tag();
+
+    // encoding of one line, in dfs order
+    auto append_node = [&]( const Tlv& tlv, int depth )
+    {
+        if( depth == 0 && skip_root )
+            return Continue;
+
+        output.append( (depth - skip_root) *4, ' ' );
+        output.append( tlv.data_->tag.to_hex_string() );
+        if( tlv.data_->value.size() > 0 )
+        {
+            output.append( " " );
+            output.append( hexify( tlv.data_->value ) );
+
+            // add ascii representation as comment, if printable
+            if( std::any_of( tlv.data_->value.begin(), tlv.data_->value.end(), is_printable_char ) )
+            {
+                output.append( " // \"" );
+                output.append( tlv.string() );
+                output.append( "\"");
+            }
+        }
+        output.append( "\n" );
+
+        return TraversalAction::Continue;
+    };
+
+    _dfs_unsafe_depth( append_node );
     return output;
 }
 

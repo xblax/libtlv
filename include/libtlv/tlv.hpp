@@ -170,6 +170,11 @@ public:
         uint32_t tag_number() const;
 
         /**
+         * Returns the tag value as ASCII hex string
+         */
+        std::string to_hex_string() const;
+
+        /**
          * Returns the value of the tag.
          */
         uint32_t value() const { return _value; }
@@ -267,9 +272,14 @@ public:
     Status expand( int depth = Deep );
 
     /**
-     * Build tree into byte sequence
+     * Build tree into byte sequence (binary encoded)
      */
     std::vector<uint8_t> dump() const;
+
+    /**
+     * Build tree into ASCII formatted text, using indentation and whitespace instead of explicit length encoding.
+     */
+    std::string dump_formatted() const;
 
     /***********
      * Capacity
