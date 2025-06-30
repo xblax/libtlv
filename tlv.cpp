@@ -763,7 +763,7 @@ std::string Tlv::dump_formatted() const
             output.append( hexify( tlv.data_->value ) );
 
             // add ascii representation as comment, if printable
-            if( std::any_of( tlv.data_->value.begin(), tlv.data_->value.end(), is_printable_char ) )
+            if( std::all_of( tlv.data_->value.begin(), tlv.data_->value.end(), is_printable_char ) )
             {
                 output.append( " // \"" );
                 output.append( tlv.string() );
