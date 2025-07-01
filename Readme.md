@@ -19,6 +19,14 @@ To use the library, it's recommended to include it as subdirectory into an exist
 ### Tests
 To build the test target, CppUTest library is required.
 
+### Cmdline util
+The CMake project has a 'tlvutil' target for a CLI-tool to convert between different TLV data encodings.<br>
+The options for input and output are:
+
+1. Binary encoded TLV data
+2. Hex encoded TLV data (ASCII-HEX representation of binary data)
+3. Formatted TLV data -- custom data format for git-friendly representation of TLV data
+
 ## Examples
 ### Headers
 See **test.cpp** for usage examples
