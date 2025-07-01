@@ -843,6 +843,12 @@ Tlv::Status Tlv::parse_formatted(const uint8_t *data, const size_t size)
     return _parse_formatted( *this, formattedStr );
 }
 
+Tlv::Status Tlv::parse_formatted( std::string_view data )
+{
+    reset();
+    return _parse_formatted( *this, data );
+}
+
 Tlv::Status Tlv::expand( int depth )
 {
     Status s;

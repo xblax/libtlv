@@ -276,6 +276,14 @@ public:
     Status parse_formatted( const uint8_t *data, const size_t size );
 
     /**
+     * Parse formatted TLV data, format according to dump_formatted. Behavior is as for
+     * parse_all, up to the maximum depth.
+     * @param[in] data  - input string
+     * @return opreation status
+     */
+    Status parse_formatted( std::string_view data );
+
+    /**
      * Parses the value of node into a subtree of TLV nodes.
      * If parsing is succssfull, value is removed and children are assigned to this node.
      */
