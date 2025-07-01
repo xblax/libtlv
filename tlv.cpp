@@ -1661,7 +1661,7 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
             {
                 stack.back().node->children.push_back( tlvNode );
             }
-            // First tag of root node (special case)
+            // First child of root node (special case)
             else if( stack.back().child_indent == -1 )
             {
                 stack.back().child_indent = node.indent;
@@ -1670,9 +1670,28 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
             // Subtag of last tag,
             else if ( node.indent > stack.back().child_indent )
             {
-                // The last child tag of the current parent, must be pushed on stack an becomes the
-                // new parent for this tag
-                stack.push_back( { stack.back().node->children.back().data_.get(),
+                // The last child tag of the current parent, becomes new parent for this tag
+                auto new_parent = stack.back().node->children.back().data_.get();
+
+                // Enforce that parent is a constructred tag
+                if( !new_parent->tag.constructed() )
+                {
+                    status = Tlv::Status( Tlv::Status::UnexpectedData, parser.get_cur_pos(),
+                                          "Invalid subtag %X for non-construted parent tag %X on line %u",
+                                          node.tag.value(), new_parent->tag.value(), (unsigned)parser.get_cur_line()-1 );
+                    return status;
+                }
+                // Enforce that parent has no payload data
+                if( !new_parent->value.empty() )
+                {
+                    status = Tlv::Status( Tlv::Status::UnexpectedData, parser.get_cur_pos(),
+                                          "Invalid subtag %X for parent tag %X with payload data on line %u",
+                                          node.tag.value(), new_parent->tag.value(), (unsigned)parser.get_cur_line()-1 );
+                    return status;
+                }
+
+                // It must be pushed on stack
+                stack.push_back( { new_parent,
                                    stack.back().child_indent,
                                    node.indent } );
                 // This node with bigger indentation becomes first child of new parent
@@ -1694,7 +1713,7 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
             if( stack.back().child_indent != node.indent )
             {
                 status = Tlv::Status( Tlv::Status::UnexpectedData, parser.get_cur_pos(),
-                                      "Tag %X on line %u has unexpected indentation.", node.tag.value(), (unsigned)parser.get_cur_line() );
+                                      "Tag %X on line %u has unexpected indentation.", node.tag.value(), (unsigned)parser.get_cur_line()-1 );
                 return status;
             }
 
