@@ -396,6 +396,242 @@ public:
     }
 };
 
+/*
+ * FormattedParser
+ */
+
+class Tlv::FormattedParser
+{
+    std::string_view data;
+    size_t pos;
+
+    size_t curLine;
+    size_t curLineStartPos;
+
+    static constexpr const uint8_t multi_octet_tag_mask_ = 0x1F;
+    static constexpr const uint8_t more_octet_mask_ = 0x80;
+
+private:
+
+    void read_spaces()
+    {
+        while(pos < data.size() && data.at(pos) == ' ')
+        {
+            pos++;
+        }
+    }
+
+    int read_indet()
+    {
+        // indent defines tag hierarch (just whitespaces allowed)
+        auto old_pos = pos;
+        read_spaces();
+        return pos - old_pos;
+    }
+
+    std::string_view read_hex( Tlv::Status &status )
+    {
+        // hex string for either tag or data, must be terminated by either whitespace, newline, or EOF
+        auto is_hex_char = []( char c )
+        {
+            return ((c >= '0') && (c <= '9')) ||
+                   ((c >= 'A') && (c <= 'F')) ||
+                   ((c >= 'a') && (c <= 'f'));
+        };
+
+        size_t begin = pos;
+
+        // read all hex chars
+        while( pos < data.size() && is_hex_char(data.at(pos)) )
+        {
+            pos++;
+        }
+        size_t end = pos;
+
+        // check if hex string is terminated correctly with whitespace, newline for enf of input (if exists at all)
+        if( (end-begin) > 0 && end < data.size() )
+        {
+            if( data.at(pos) != ' ' && data.at(pos) != '\n' )
+            {
+                status = Tlv::Status( Tlv::Status::UnexpectedData, pos, "Unexpected char '%c' at line %u pos %u while parsing hex data",
+                                      data.at(pos), (unsigned)curLine, (unsigned)get_cur_line_pos() );
+                return std::string_view();
+            }
+        }
+
+        // check size of hex string
+        if( (end-begin) % 2 != 0 )
+        {
+            status = Tlv::Status( Tlv::Status::UnexpectedData, pos, "Unexpected size of hex encoded data at line %u pos %u",
+                                  (unsigned)curLine, (unsigned)get_cur_line_pos() );
+            return std::string_view();
+        }
+
+        return std::string_view( &data.at(begin), end-begin );
+    }
+
+    Tlv::Tag read_tag( Tlv::Status &status )
+    {
+        auto tagHexStr = read_hex( status );
+        if( !status.ok() )
+        {
+            return Tlv::Tag();
+        }
+        else if( tagHexStr.empty() )
+        {
+            status = Tlv::Status( Tlv::Status::UnexpectedData, pos, "Unexpected end of tag number at line %u pos %u: expected hex encoded tag",
+                                  (unsigned)curLine, (unsigned)get_cur_line_pos() );
+            return Tlv::Tag();
+        }
+
+        // Hex 2 Bin
+        auto tagBinVec = LibtlvUtil::unhexify( tagHexStr );
+
+        // Read tag fist byte
+        uint32_t tag = tagBinVec[0];
+        // Read tag other bytes
+        if( ( tagBinVec[0] & multi_octet_tag_mask_ ) == multi_octet_tag_mask_ )
+        {
+            bool hasNext = true;
+            size_t i = 1;
+            for(; i < sizeof(uint32_t) && hasNext; i++ )
+            {
+                if( i == tagBinVec.size() )
+                {
+                    status = Tlv::Status( Tlv::Status::BadTag, pos, "Unexpected end of tag number at line %u pos %u",
+                                          (unsigned)curLine, (unsigned)get_cur_line_pos() );
+                    return Tlv::Tag();
+                }
+
+                tag = ( tag << 8 ) + tagBinVec[i];
+                hasNext = (tagBinVec[i] & more_octet_mask_);
+            }
+
+            if( hasNext )
+            {
+                status = Tlv::Status( Tlv::Status::BadTag, pos, "Tag too long while reading tag number '%X' at line %u pos %u",
+                                      tag, (unsigned)curLine, (unsigned)get_cur_line_pos() );
+                return Tlv::Tag();
+            }
+
+            if( i != tagBinVec.size())
+            {
+                status = Tlv::Status( Tlv::Status::BadTag, pos, "Unexpected trailing data while reading tag number at line %u",
+                                      (unsigned)curLine );
+            }
+        }
+
+        return Tlv::Tag( tag );
+    }
+
+    // optional hex data, emtpy string if not present
+    std::string_view read_tag_data( Tlv::Status& status )
+    {
+        // read spaces before tag data
+        read_spaces();
+        return read_hex( status );
+    }
+
+    // optional comment, empty string if not present, no errors
+    std::string_view read_tag_comment( Tlv::Status & )
+    {
+        // read spaces before comment
+        read_spaces();
+
+        // starts with "//"
+        if( pos < (data.size() - 1) && data.at(pos) == '/' && data.at(pos+1) == '/' )
+        {
+            pos+=2;
+
+            // read until newline or end of input
+            size_t begin = pos;
+            while( pos < data.size() && data.at(pos) != '\n' )
+            {
+                pos++;
+            }
+            size_t end = pos;
+            return std::string_view( &data.at(begin), end-begin );
+        }
+
+        return std::string_view();
+    };
+
+    // end of tag andvances the line, ensures all other data was read
+    void read_end_of_tag( Tlv::Status& status )
+    {
+        if( pos < data.size() && data.at( pos ) == '\n' )
+        {
+            pos++;
+            curLine++;
+            curLineStartPos = pos;
+        }
+        else if ( pos < data.size() )
+        {
+            status = Tlv::Status( Tlv::Status::UnexpectedData, pos, "Unexpected char '%c' at line %u pos %u",
+                                  data.at(pos), (unsigned)curLine, (unsigned)get_cur_line_pos() );
+        }
+    }
+
+public:
+
+    struct ShallowNode
+    {
+        int line;
+        int indent;
+        Tlv::Tag tag;
+        std::string_view hexData;
+        std::string_view comment;
+    };
+
+    FormattedParser( std::string_view data ) :
+        data( data ),
+        pos( 0 ),
+        curLine( 1 ),
+        curLineStartPos( 0 )
+    {}
+
+    bool has_next_tag() { return data.size() > pos; }
+
+    size_t get_cur_pos() { return pos; }
+    size_t get_cur_line() { return curLine; }
+    size_t get_cur_line_pos() { return pos - curLineStartPos + 1; }
+
+    Tlv::Status next( ShallowNode& node )
+    {
+        Tlv::Status status;
+
+        node.line = curLine;
+        node.indent = read_indet();
+
+        // Get Tag
+        node.tag = read_tag( status );
+        if( !status.ok() )
+        {
+            return status;
+        }
+
+        // Get Tag data (optional)
+        node.hexData = read_tag_data( status );
+        if( !status.ok() )
+        {
+            return status;
+        }
+
+        // Get Tag comment (optional)
+        node.comment = read_tag_comment( status );
+        if( !status.ok() )
+        {
+            return status;
+        }
+
+        // Read enf of line, ensure no junk data is left
+        read_end_of_tag( status );
+        return status;
+    }
+
+
+};
+
 /**
  * Tlv
  */
@@ -598,6 +834,13 @@ Tlv::Status Tlv::parse_all(const uint8_t* data, const size_t size, int depth )
 {
     reset();
     return _parse( *this, data, data + size, data, depth );
+}
+
+Tlv::Status Tlv::parse_formatted(const uint8_t *data, const size_t size)
+{
+    reset();
+    std::string_view formattedStr( reinterpret_cast<const char*>(data), size );
+    return _parse_formatted( *this, formattedStr );
 }
 
 Tlv::Status Tlv::expand( int depth )
@@ -1366,4 +1609,100 @@ const Tlv::Status Tlv::_parse_one(Tlv& root, const uint8_t* begin, const uint8_t
     }
 
     return s;
+}
+
+const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
+{
+    /* Note: The formatted parser parses tags linewise, indentation defines nesting.
+     * Tags in the data-format appear in DFS order of the TLV-tree */
+    FormattedParser parser( data );
+    Tlv::Status status;
+
+    struct ParentNode
+    {
+        Data* node;
+        int   indet;          // indentation of tag
+        int   child_indent;   // indentation child tags
+    };
+
+    // The stack has the parent nodes chain
+    std::vector<ParentNode> stack;
+    stack.reserve( 4 );
+    // Virtual root node without tag number has all children (per definition they have indent >= 0)
+    stack.push_back({ root.data_.get(), -1, -1 });
+
+    while( parser.has_next_tag() )
+    {
+        // Parse one line / tag
+        FormattedParser::ShallowNode node;
+        status = parser.next( node );
+        if( !status.ok() )
+        {
+            return status;
+        }
+
+        // Create Tlv node for decoded ShallowNode
+        Tlv tlvNode( node.tag );
+        if( !node.hexData.empty() )
+        {
+            tlvNode.set_value( LibtlvUtil::unhexify( node.hexData ));
+        }
+
+        /* Assertion due to DFS-order:
+         * Each node that has child nodes, has at least one direct child tag that comes immediately after.
+         * If a non direct child requires stack-unwind, it must already have other child nodes with
+         * equal indentation */
+
+        // Case 1: Child of current parent on stack
+        if( node.indent >= stack.back().child_indent )
+        {
+            // Sibling of last tag
+            if( stack.back().child_indent == node.indent )
+            {
+                stack.back().node->children.push_back( tlvNode );
+            }
+            // First tag of root node (special case)
+            else if( stack.back().child_indent == -1 )
+            {
+                stack.back().child_indent = node.indent;
+                stack.back().node->children.push_back( tlvNode );
+            }
+            // Subtag of last tag,
+            else if ( node.indent > stack.back().child_indent )
+            {
+                // The last child tag of the current parent, must be pushed on stack an becomes the
+                // new parent for this tag
+                stack.push_back( { stack.back().node->children.back().data_.get(),
+                                   stack.back().child_indent,
+                                   node.indent } );
+                // This node with bigger indentation becomes first child of new parent
+                stack.back().node->children.push_back( tlvNode );
+            }
+        }
+
+        // Case 2: Sibling of a previous tag on stack
+        else
+        {
+            // Unwind stack until finding the correct parent
+            // Note that the root note will never be removed since it's child_indent (-1) is smaller than for any other node
+            while( stack.back().child_indent > node.indent )
+            {
+                stack.pop_back();
+            }
+
+            // Enforce that all children of a tag use identical indentation
+            if( stack.back().child_indent != node.indent )
+            {
+                status = Tlv::Status( Tlv::Status::UnexpectedData, parser.get_cur_pos(),
+                                      "Tag %X on line %u has unexpected indentation.", node.tag.value(), (unsigned)parser.get_cur_line() );
+                return status;
+            }
+
+            // Set as child of current parent
+            stack.back().node->children.push_back( tlvNode );
+        }
+    }
+
+    status.set_parsed_len(parser.get_cur_pos());
+    return status;
 }

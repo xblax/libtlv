@@ -101,7 +101,11 @@ public:
         }
         else if ( inFormat == TlvFormat::Formatted )
         {
-            throw std::runtime_error( "not supported" );
+            auto status = tree.parse_formatted( reinterpret_cast<uint8_t*>( inBuffer.data() ), inBuffer.size() );
+            if( !status.ok() )
+            {
+                throw std::runtime_error( status.message() );
+            }
         }
     }
 

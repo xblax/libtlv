@@ -28,7 +28,8 @@ public:
             UnexpectedEnd,
             BadTag,
             BadLength,
-            BadArgument
+            BadArgument,
+            UnexpectedData
         };
 
         Status()  :
@@ -264,6 +265,15 @@ public:
      * @return opreation status
      */
     Status parse_all( const uint8_t *data, const size_t size, int depth = Deep );
+
+    /**
+     * Parse formatted TLV data, format according to dump_formatted. Behavior is as for
+     * parse_all, up to the maximum depth.
+     * @param[in] data  - input buffer
+     * @param[in] size  - input size
+     * @return opreation status
+     */
+    Status parse_formatted( const uint8_t *data, const size_t size );
 
     /**
      * Parses the value of node into a subtree of TLV nodes.
@@ -510,6 +520,7 @@ private:
     struct Data;
     std::shared_ptr<Data> data_;
     class Parser;
+    class FormattedParser;
 
     explicit Tlv( const std::shared_ptr<Data> &data );
     explicit Tlv( std::shared_ptr<Data> &&data );
@@ -521,4 +532,5 @@ private:
 
     static const Status _parse( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
     static const Status _parse_one( Tlv& root, const uint8_t* begin, const uint8_t* end, const uint8_t* tree_begin, int maxDepth = std::numeric_limits<int>::max() );
+    static const Status _parse_formatted( Tlv& root, std::string_view data );
 };
