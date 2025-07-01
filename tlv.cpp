@@ -836,6 +836,20 @@ Tlv::Status Tlv::parse_all(const uint8_t* data, const size_t size, int depth )
     return _parse( *this, data, data + size, data, depth );
 }
 
+Tlv Tlv::parse_formatted(const uint8_t *data, const size_t size, Status &s)
+{
+    Tlv root;
+    s = root.parse_formatted( data, size );
+    return root;
+}
+
+Tlv Tlv::parse_formatted(std::string_view data, Status &s)
+{
+    Tlv root;
+    s = root.parse_formatted( data );
+    return root;
+}
+
 Tlv::Status Tlv::parse_formatted(const uint8_t *data, const size_t size)
 {
     reset();

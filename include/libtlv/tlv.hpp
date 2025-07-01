@@ -271,6 +271,25 @@ public:
      * parse_all, up to the maximum depth.
      * @param[in] data  - input buffer
      * @param[in] size  - input size
+     * @param[out] s    - operation status
+     * @return opreation status
+     */
+    static Tlv parse_formatted( const uint8_t *data, const size_t size, Status &s );
+
+    /**
+     * Parse formatted TLV data, format according to dump_formatted. Behavior is as for
+     * parse_all, up to the maximum depth.
+     * @param[in] data  - input string
+     * @param[out] s    - operation status
+     * @return opreation status
+     */
+    static Tlv parse_formatted( std::string_view data, Status &s );
+
+    /**
+     * Parse formatted TLV data, format according to dump_formatted. Behavior is as for
+     * parse_all, up to the maximum depth.
+     * @param[in] data  - input buffer
+     * @param[in] size  - input size
      * @return opreation status
      */
     Status parse_formatted( const uint8_t *data, const size_t size );
