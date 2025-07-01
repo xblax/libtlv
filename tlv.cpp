@@ -1621,7 +1621,6 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
     struct ParentNode
     {
         Data* node;
-        int   indet;          // indentation of tag
         int   child_indent;   // indentation child tags
     };
 
@@ -1629,7 +1628,7 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
     std::vector<ParentNode> stack;
     stack.reserve( 4 );
     // Virtual root node without tag number has all children (per definition they have indent >= 0)
-    stack.push_back({ root.data_.get(), -1, -1 });
+    stack.push_back({ root.data_.get(), -1 });
 
     while( parser.has_next_tag() )
     {
@@ -1691,9 +1690,7 @@ const Tlv::Status Tlv::_parse_formatted(Tlv &root, std::string_view data)
                 }
 
                 // It must be pushed on stack
-                stack.push_back( { new_parent,
-                                   stack.back().child_indent,
-                                   node.indent } );
+                stack.push_back( { new_parent, node.indent } );
                 // This node with bigger indentation becomes first child of new parent
                 stack.back().node->children.push_back( tlvNode );
             }
