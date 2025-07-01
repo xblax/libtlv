@@ -1605,3 +1605,42 @@ TEST(TlvParse, DuplicateTags)
     CHECK_EQUAL( 1, it->value().size() );
     CHECK_EQUAL( 0xFF, it->value().at( 0 ) );
 }
+
+TEST(TlvParse, FormattedParseDump)
+{
+    const char* formattedTree =
+R"TLV(
+45 01
+BF8501
+    AA
+        8A 01020304
+        8B 3031 // "01"
+        8C
+    4F ABCD
+    4F EF01
+46
+)TLV";
+    const char* hexTree = "450101BF850116AA0C8A04010203048B0230318C004F02ABCD4F02EF014600";
+    std::string_view formattedStr( formattedTree + 1 ); // remove new newline
+
+    // parse formatted
+    Tlv root;
+    auto status = root.parse_formatted( formattedStr );
+    CHECK_TRUE( status.ok() );
+    CHECK_EQUAL( root.num_children(), 3 );
+    CHECK_EQUAL( root.tree_size(), 10 );
+
+    // check that hex dump of parsed tree equals hexStr
+    auto binTree = root.dump();
+    CHECK_EQUAL( LibtlvUtil::hexify(binTree), std::string(hexTree) );
+
+    // check that formatted dump equals formattedTree
+    CHECK_EQUAL( root.dump_formatted(), std::string(formattedStr) );
+
+    // check that parsing of binTree, and formatted dump equals original formattedTree
+    Tlv root2;
+    status = root2.parse_all( binTree.data(), binTree.size() );
+    CHECK_TRUE( status.ok() );
+    CHECK_EQUAL( root2.dump_formatted(), std::string(formattedStr) );
+}
+
