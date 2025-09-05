@@ -1325,28 +1325,84 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&, int depth)> callback ) const
     }
 }
 
-
-Tlv Tlv::find( const Tag tag )
+Tlv Tlv::find( const Tag tag, int maxDepth )
 {
-    for( auto& child : data_->children )
+    // just iterate to find direct childen
+    if( maxDepth == DirectChildren )
     {
-        if( child.tag() == tag )
+        for( auto& child : data_->children )
         {
-            return child;
+            if( child.tag() == tag )
+            {
+                return child;
+            }
         }
+
+        return Tlv();
     }
-    return Tlv();
+    // dfs search to find first deep match
+    else
+    {
+        Tlv tlv;
+        auto find_tag = [&]( const Tlv& child, int depth )
+        {
+            if( child.tag() == tag )
+            {
+                tlv = child;
+                return TraversalAction::Break;
+            }
+            else if( depth == maxDepth )
+            {
+                return TraversalAction::Prune;
+            }
+            else
+            {
+                return TraversalAction::Continue;
+            }
+        };
+
+        _dfs_unsafe_depth( find_tag );
+        return tlv;
+    }
 }
 
-std::vector<Tlv> Tlv::find_all( const Tag tag )
+std::vector<Tlv> Tlv::find_all( const Tag tag, int maxDepth, bool findNested )
 {
     std::vector<Tlv> matches;
-    for( auto& child : data_->children )
+
+    // just iterate to find direct childen
+    if( maxDepth == DirectChildren )
     {
-        if( child.tag() == tag )
+        for( auto& child : data_->children )
         {
-            matches.push_back( child );
+            if( child.tag() == tag )
+            {
+                matches.push_back( child );
+            }
         }
+    }
+    // dfs search to find deep matches
+    else
+    {
+        auto find_tag = [&]( const Tlv& child, int depth )
+        {
+            bool match = child.tag() == tag;
+            if( match )
+            {
+                matches.push_back( child );
+            }
+
+            if( ( match && !findNested ) || depth == maxDepth )
+            {
+                return TraversalAction::Prune;
+            }
+            else
+            {
+                return TraversalAction::Continue;
+            }
+        };
+
+        _dfs_unsafe_depth( find_tag );
     }
     return matches;
 }
