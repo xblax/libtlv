@@ -1004,6 +1004,18 @@ TEST(TlvBuild, RootWithoutTag)
     STRCMP_EQUAL( "D101FFD201FF", hexify( root.dump() ).c_str() );
 }
 
+TEST(TlvBuild, ChildWithoutTag)
+{
+    Tlv root( 0xF1 );
+    Tlv constructedChild; // has no tag
+    constructedChild.push_back( Tlv( 0xD1, 0xFF ) );
+    constructedChild.push_back( Tlv( 0xD2, 0xFF ) );
+    root.push_back( constructedChild );
+    CHECK_EQUAL( 1, root.num_children() );
+    // the constructed child without tag is omited from encoded data
+    STRCMP_EQUAL( "F106D101FFD201FF", hexify( root.dump() ).c_str() );
+}
+
 TEST(TlvBuild, CopyConstructor)
 {
     Tlv node( 0xF1 );
