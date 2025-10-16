@@ -948,10 +948,15 @@ std::vector<uint8_t> Tlv::dump() const
             {
                 // add own size to parent size + size for tag + len field
                 auto &parentNodeNumber = buildStack[buildStack.size() - 1 - currentElement.parentOffset].nodeNumber;
-                buildElements[parentNodeNumber].size
-                        += currentElement.node->tag().size()							  // tag size
-                        + len_field_size( buildElements[currentElement.nodeNumber].size ) // len field size
-                        + buildElements[currentElement.nodeNumber].size;		          // payload size
+
+                // this node only has a positive node size and len field if, the tag is not emtpy
+                if( !currentElement.node->tag().empty() )
+                {
+                    buildElements[parentNodeNumber].size
+                            += currentElement.node->tag().size()							   // tag size
+                            + len_field_size( buildElements[currentElement.nodeNumber].size ); // len field size
+                }
+                buildElements[parentNodeNumber].size += buildElements[currentElement.nodeNumber].size; // payload size
             }
             buildStack.pop_back();
         }
