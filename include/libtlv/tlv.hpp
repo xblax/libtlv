@@ -469,13 +469,13 @@ public:
      * Find one child node with matching tag. If none is found an empty node is returned.
      * Only direct children are considered.
      */
-    Tlv find( const Tag tag, int maxDepth = DirectChildren );
+    Tlv find( const Tag tag, int maxDepth = DirectChildren ) const;
 
     /**
      * Find all child nodes with matching tag. If none are found an empty vector is returned.
      * By default only direct children are considered.
      */
-    std::vector<Tlv> find_all( const Tag tag, int maxDepth = DirectChildren, bool findNested = false );
+    std::vector<Tlv> find_all( const Tag tag, int maxDepth = DirectChildren, bool findNested = false ) const;
 
     /**
      * Remove all child nodes witch matching tag. The number of removed children is returned.

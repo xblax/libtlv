@@ -1330,7 +1330,7 @@ void Tlv::bfs( std::function<TraversalAction(Tlv&, int depth)> callback ) const
     }
 }
 
-Tlv Tlv::find( const Tag tag, int maxDepth )
+Tlv Tlv::find( const Tag tag, int maxDepth ) const
 {
     // just iterate to find direct childen
     if( maxDepth == DirectChildren )
@@ -1371,7 +1371,7 @@ Tlv Tlv::find( const Tag tag, int maxDepth )
     }
 }
 
-std::vector<Tlv> Tlv::find_all( const Tag tag, int maxDepth, bool findNested )
+std::vector<Tlv> Tlv::find_all( const Tag tag, int maxDepth, bool findNested ) const
 {
     std::vector<Tlv> matches;
 
