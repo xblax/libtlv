@@ -1166,7 +1166,9 @@ std::string Tlv::string() const
 
 bool Tlv::boolean() const
 {
-    return (bool)data_->value.front();
+    return std::any_of( data_->value.begin(), data_->value.end(), [](uint8_t byte) {
+        return byte != 0x00;
+    } );
 }
 
 int8_t Tlv::int8() const

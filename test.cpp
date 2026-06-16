@@ -470,6 +470,21 @@ TEST(TlvBuild, AsBool)
     Tlv t( 0x8A, true );
     STRCMP_EQUAL( "8A0101", hexify( t.dump() ).c_str() );
     CHECK_EQUAL( true, t.boolean() );
+
+    Tlv t2( 0x8A, false );
+    STRCMP_EQUAL( "8A0100", hexify( t2.dump() ).c_str() );
+    CHECK_EQUAL( false, t2.boolean() );
+
+    // empty tag
+    Tlv t3( 0x8A );
+    STRCMP_EQUAL( "8A00", hexify( t3.dump() ).c_str() );
+    CHECK_EQUAL( false, t3.boolean() );
+
+    // multiple bytes (not all zero)
+    t3.value().push_back(0x00);
+    t3.value().push_back(0x01);
+    STRCMP_EQUAL( "8A020001", hexify( t3.dump() ).c_str() );
+    CHECK_EQUAL( true, t3.boolean() );
 }
 
 TEST(TlvBuild, FromInt8)
