@@ -675,22 +675,63 @@ Tlv::Tlv( const Tag tag, const std::string &s ) :
 }
 
 template<typename T>
-void build_int_value( Tlv::Value &buf, T value )
+void build_int_value_raw( Tlv::Value& buf, const T val )
 {
-    if ( value == 0 )
+    /*
+     * Write as unsigned integer with MSB byte order,
+     * without leading 0x00-bytes (not BER-TLV signed integer)
+     */
+
+    using U = std::make_unsigned_t<T>;
+    const U uval = static_cast<U>(val);
+
+    auto getByte = [&](int n) -> uint8_t
+    {
+        return static_cast<uint8_t>( uval >> ( n * 8 ) );
+    };
+
+    if ( val == 0 )
     {
         buf.push_back( 0x00 );
-    } else {
-        for( int i = sizeof( T ) - 1; i >= 0; i-- )
+    }
+    else
+    {
+        int i = sizeof( T ) - 1;
+
+        // skip leading 0x00-bytes
+        for( ; i >= 0 && getByte( i ) == 0x00; i-- );
+        // store other bytes
+        for( ; i >= 0; i-- )
         {
-            uint8_t b = ( value >> ( i * 8 ) ) & 0xFF;
-            if ( b == 0 )
-            {
-                continue;
-            }
-            buf.push_back( b );
+            buf.push_back( getByte( i ) );
         }
     }
+}
+
+template<typename T>
+T read_int_value_raw( const Tlv::Value& buf )
+{
+    /*
+     * Read as unsigned integer with MSB byte order (not BER-TLV signed integer)
+     *
+     * If buffer is bigger than the target value it will only read
+     * the tail bytes in MSB order (overflow).
+     */
+
+    T val = 0;
+
+    // start with tail bytes if target value would overflow (MSB order)
+    size_t i = buf.size() > sizeof( T ) ? buf.size() - sizeof( T ) : 0;
+    for( ; i < buf.size(); i++ )
+    {
+        if constexpr(sizeof(T) > 1)
+        {
+            val <<= 8;
+        }
+        val |= buf.at( i );
+    }
+
+    return val;
 }
 
 Tlv::Tlv( const Tag tag, bool b ) :
@@ -708,19 +749,19 @@ Tlv::Tlv( const Tag tag, int8_t i ) :
 Tlv::Tlv( const Tag tag, int16_t i ) :
     Tlv( tag )
 {
-    build_int_value<int16_t>( data_->value, i );
+    build_int_value_raw<int16_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, int32_t i ) :
     Tlv( tag )
 {
-    build_int_value<int32_t>( data_->value, i );
+    build_int_value_raw<int32_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, int64_t i ) :
     Tlv( tag )
 {
-    build_int_value<int64_t>( data_->value, i );
+    build_int_value_raw<int64_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, uint8_t i ) :
@@ -732,19 +773,19 @@ Tlv::Tlv( const Tag tag, uint8_t i ) :
 Tlv::Tlv( const Tag tag, uint16_t i ) :
     Tlv( tag )
 {
-    build_int_value<int16_t>( data_->value, i );
+    build_int_value_raw<int16_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, uint32_t i ) :
     Tlv( tag )
 {
-    build_int_value<int32_t>( data_->value, i );
+    build_int_value_raw<int32_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, uint64_t i ) :
     Tlv( tag )
 {
-    build_int_value<int64_t>( data_->value, i );
+    build_int_value_raw<int64_t>( data_->value, i );
 }
 
 Tlv::Tlv( const Tag tag, Tlv &child ) :
@@ -1130,49 +1171,42 @@ bool Tlv::boolean() const
 
 int8_t Tlv::int8() const
 {
-    return (int8_t)data_->value.front();
+    return read_int_value_raw<int8_t>( data_->value );
 }
 
 int16_t Tlv::int16() const
 {
-    return (int16_t)uint64();
+    return read_int_value_raw<int16_t>( data_->value );
 }
 
 int32_t Tlv::int32() const
 {
-    return (int32_t)uint64();
+    return read_int_value_raw<int32_t>( data_->value );
 }
 
 int64_t Tlv::int64() const
 {
-    return uint64();
+    return read_int_value_raw<int64_t>( data_->value );
 }
 
 uint8_t Tlv::uint8() const
 {
-    return data_->value.front();
+    return read_int_value_raw<uint8_t>( data_->value );
 }
 
 uint16_t Tlv::uint16() const
 {
-    return (uint16_t)uint64();
+    return read_int_value_raw<uint16_t>( data_->value );
 }
 
 uint32_t Tlv::uint32() const
 {
-    return (uint32_t)uint64();
+    return read_int_value_raw<uint32_t>( data_->value );
 }
 
 uint64_t Tlv::uint64() const
 {
-    uint64_t ret = 0;
-    int n = ( data_->value.size() > 7 ) ? 8 : data_->value.size();
-    for( int i = 0; i < n; i++ )
-    {
-        ret <<= 8;
-        ret |= data_->value.at( i );
-    }
-    return ret;
+    return read_int_value_raw<uint64_t>( data_->value );
 }
 
 const Tlv::ChildContainer& Tlv::children() const

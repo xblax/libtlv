@@ -216,6 +216,31 @@ TEST( TlvTag, TagFromNullTerminatedChar )
 }
 
 /*
+ * TlvTagValue
+ */
+
+TEST_GROUP(TlvTagValue)
+{};
+
+TEST( TlvTagValue, AsUnsignedInt )
+{
+    auto v = unhexify( "8202FF11" );
+    Tlv::Status s;
+    auto t = Tlv::parse( v.data(), v.size(), s );
+    // overflow
+    CHECK_EQUAL( 0x11, t.uint8() );
+    // exact size
+    CHECK_EQUAL( 0xFF11, t.uint16() );
+    // underflow
+    CHECK_EQUAL( 0xFF11, t.uint64() );
+
+    // empty value
+    Tlv t2( 0x82 );
+    CHECK_EQUAL( 0, t2.value_size() );
+    CHECK_EQUAL( 0, t2.uint32() );
+}
+
+/*
  * TlvBuild
  */
 
@@ -447,7 +472,7 @@ TEST(TlvBuild, AsBool)
     CHECK_EQUAL( true, t.boolean() );
 }
 
-TEST(TlvBuild, AsInt8)
+TEST(TlvBuild, FromInt8)
 {
     int8_t i = 5;
     Tlv t( 0x8A, i );
@@ -461,7 +486,7 @@ TEST(TlvBuild, AsInt8)
     CHECK_EQUAL( -5, t.int8() );
 }
 
-TEST(TlvBuild, AsInt16)
+TEST(TlvBuild, FromInt16)
 {
     int16_t i = 0x555;
     Tlv t( 0x8A, i );
@@ -470,12 +495,16 @@ TEST(TlvBuild, AsInt16)
 
     i = -1365;
     Tlv t2( 0x8A, i );
-    t.swap( t2 );
-    STRCMP_EQUAL( "8A02FAAB", hexify( t.dump() ).c_str() );
-    CHECK_EQUAL( -1365, t.int16() );
+    STRCMP_EQUAL( "8A02FAAB", hexify( t2.dump() ).c_str() );
+    CHECK_EQUAL( -1365, t2.int16() );
+
+    i = -4096;
+    Tlv t3( 0x8A, i );
+    STRCMP_EQUAL( "8A02F000", hexify( t3.dump() ).c_str() );
+    CHECK_EQUAL( -4096, t3.int16() );
 }
 
-TEST(TlvBuild, AsInt32)
+TEST(TlvBuild, FromInt32)
 {
     int32_t i = 0x5555555;
     Tlv t( 0x8A, i );
@@ -487,9 +516,14 @@ TEST(TlvBuild, AsInt32)
     t.swap( t2 );
     STRCMP_EQUAL( "8A04FAAAAAAB", hexify( t.dump() ).c_str() );
     CHECK_EQUAL( -89478485, t.int32() );
+
+    i = 0x110022;
+    Tlv t3( 0x8A, i );
+    STRCMP_EQUAL( "8A03110022", hexify( t3.dump() ).c_str() );
+    CHECK_EQUAL( 0x110022, t3.int32() );
 }
 
-TEST(TlvBuild, AsInt64)
+TEST(TlvBuild, FromInt64)
 {
     int64_t i = 0x555555555555555;
     Tlv t( 0x8A, i );
@@ -503,11 +537,16 @@ TEST(TlvBuild, AsInt64)
     CHECK_EQUAL( -384307168202282325, t.int64() );
 
     i = 0x123;
-    t = Tlv( 0x8A, i );
-    STRCMP_EQUAL( "8A020123", hexify( t.dump() ).c_str() );
-    CHECK_EQUAL( 0x123, t.int16() );
-    CHECK_EQUAL( 0x123, t.int32() );
-    CHECK_EQUAL( 0x123, t.int64() );
+    Tlv t3( 0x8A, i );
+    STRCMP_EQUAL( "8A020123", hexify( t3.dump() ).c_str() );
+    CHECK_EQUAL( 0x123, t3.int16() );
+    CHECK_EQUAL( 0x123, t3.int32() );
+    CHECK_EQUAL( 0x123, t3.int64() );
+
+    i = 0x12340056;
+    Tlv t4( 0x8A, i );
+    STRCMP_EQUAL( "8A0412340056", hexify( t4.dump() ).c_str() );
+    CHECK_EQUAL( 0x12340056, t4.int64() );
 }
 
 TEST(TlvBuild, DuplicateTags)
